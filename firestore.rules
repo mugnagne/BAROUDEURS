@@ -1,0 +1,148 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == "cam.drean35@gmail.com" || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin")
+      );
+    }
+
+    function isAuthorOrAdmin() {
+      return isAdmin() || (
+        request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "author"
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner() {
+      return existing().ownerId == request.auth.uid;
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['title', 'summary', 'content', 'date', 'author', 'ownerId'])
+        && data.title is string && data.title.size() <= 500
+        && data.summary is string && data.summary.size() <= 1000
+        && data.content is string && data.content.size() <= 50000
+        && data.date is string && data.date.size() <= 50
+        && data.author is string && data.author.size() <= 100
+        && data.ownerId == request.auth.uid // Identity Integrity
+        && (
+          !('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 5000000)
+        )
+        && (
+          !('tags' in data) || (data.tags is list && data.tags.size() <= 20)
+        )
+        && (
+          !('isMatchReport' in data) || data.isMatchReport is bool
+        )
+        && (
+          !('matchDetails' in data) || data.matchDetails is map
+        )
+        && (
+          !('createdAt' in data) || data.createdAt is number
+        )
+        && (
+          !('updatedAt' in data) || data.updatedAt is number
+        )
+        && (
+          !('id' in data) || (data.id is string && data.id.size() <= 128)
+        )
+        && (
+          !('visionnaireIds' in data) || data.visionnaireIds is list
+        );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role'])
+        && data.email is string && data.email.size() <= 200
+        && data.role in ['reader', 'author', 'admin']
+        && (!('pseudo' in data) || (data.pseudo is string && data.pseudo.size() <= 100))
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 6000000));
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['postId', 'text', 'authorId', 'createdAt'])
+        && data.postId is string && data.postId.size() <= 128
+        && data.text is string && data.text.size() <= 5000
+        && data.authorId == request.auth.uid
+        && (!('authorPseudo' in data) || (data.authorPseudo is string && data.authorPseudo.size() <= 100))
+        && (!('authorPhotoUrl' in data) || (data.authorPhotoUrl is string && data.authorPhotoUrl.size() <= 6000000))
+        && data.createdAt is number;
+    }
+
+    match /posts/{postId} {
+      // Anyone can read posts, but they must be valid ones
+      allow get: if isValidId(postId);
+      // We don't restrict query matching for now, they are public posts.
+      allow list: if true;
+
+      allow create: if isSignedIn()
+                    && isAuthorOrAdmin()
+                    && isValidId(postId)
+                    && isValidPost(incoming())
+                    && incoming().keys().size() <= 16;
+
+      allow update: if isSignedIn()
+                    && isAuthorOrAdmin()
+                    && isValidId(postId)
+                    && isValidPost(incoming())
+                    && isOwner()
+                    && incoming().ownerId == existing().ownerId; // Immutability of ownerId
+
+      allow delete: if isSignedIn()
+                    && isValidId(postId)
+                    && (isOwner() || isAdmin());
+    }
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && isValidUser(incoming()) && (
+        isAdmin() || 
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['pseudo', 'photoUrl']))
+      );
+      allow delete: if isAdmin();
+    }
+    
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(commentId) && isValidComment(incoming());
+      allow update: if isSignedIn() && isValidId(commentId) && isValidComment(incoming()) && existing().authorId == request.auth.uid && incoming().authorId == existing().authorId && incoming().postId == existing().postId;
+      allow delete: if isSignedIn() && isValidId(commentId) && (existing().authorId == request.auth.uid || isAdmin());
+    }
+
+    match /postStats/{postId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /visionnaires/{vid} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

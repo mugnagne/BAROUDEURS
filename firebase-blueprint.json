@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["reader", "author", "admin"] },
+        "pseudo": { "type": "string" },
+        "photoUrl": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "Comment": {
+       "title": "Comment",
+       "description": "A comment on a post",
+       "type": "object",
+       "properties": {
+          "postId": { "type": "string" },
+          "text": { "type": "string" },
+          "authorId": { "type": "string" },
+          "authorPseudo": { "type": "string" },
+          "authorPhotoUrl": { "type": "string" },
+          "createdAt": { "type": "number", "description": "Timestamp" }
+       },
+       "required": ["postId", "text", "authorId", "createdAt"]
+    },
+    "PostStats": {
+        "title": "Post Stats",
+        "description": "Statistics for a post",
+        "type": "object",
+        "properties": {
+           "views": { "type": "number" },
+           "clicks": { "type": "number" },
+           "shares": { "type": "number" }
+        }
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A blog post or match report",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "author": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "isMatchReport": { "type": "boolean" },
+        "matchDetails": { "type": "object" },
+        "createdAt": { "type": "number", "description": "Timestamp in milliseconds" },
+        "updatedAt": { "type": "number", "description": "Timestamp in milliseconds" },
+        "ownerId": { "type": "string", "description": "User UID who created the post" }
+      },
+      "required": ["title", "summary", "content", "date", "author", "ownerId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and roles."
+    },
+    "comments/{commentId}": {
+       "schema": { "$ref": "#/entities/Comment" },
+       "description": "Comments left on posts."
+    },
+    "postStats/{postId}": {
+      "schema": { "$ref": "#/entities/PostStats" },
+      "description": "Statistics for posts."
+    },
+    "posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Blog posts and match reports created by users."
+    }
+  }
+}
+

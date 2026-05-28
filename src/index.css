@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  
+  --color-neo-cream: #FFFDF5;
+  --color-neo-red: #E6192B; /* Deep Patriot Red */
+  --color-neo-blue: #0A3161; /* Deep Patriot Blue */
+  --color-neo-black: #000000;
+  --color-neo-white: #FFFFFF;
+  --color-neo-yellow: #FFD600;
+}
+
+@layer base {
+  body {
+    @apply bg-neo-cream text-neo-black font-sans selection:bg-neo-red selection:text-white;
+    background-image: radial-gradient(#000 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-black tracking-tighter uppercase;
+  }
+}
+
+@layer utilities {
+  .text-stroke-2 {
+    -webkit-text-stroke: 4px black;
+    color: transparent;
+  }
+  .text-stroke-1 {
+    -webkit-text-stroke: 2px black;
+    color: transparent;
+  }
+  .text-stroke-white-2 {
+    -webkit-text-stroke: 4px white;
+    color: transparent;
+  }
+  .text-stroke-white-1 {
+    -webkit-text-stroke: 2px white;
+    color: transparent;
+  }
+  
+  .shadow-neo-sm {
+    box-shadow: 4px 4px 0px 0px #000;
+  }
+  .shadow-neo-md {
+    box-shadow: 8px 8px 0px 0px #000;
+  }
+  .shadow-neo-lg {
+    box-shadow: 12px 12px 0px 0px #000;
+  }
+  .shadow-neo-xl {
+    box-shadow: 16px 16px 0px 0px #000;
+  }
+
+  .shadow-neo-sm-white {
+    box-shadow: 4px 4px 0px 0px #fff;
+  }
+  .shadow-neo-md-white {
+    box-shadow: 8px 8px 0px 0px #fff;
+  }
+
+  .bg-grid-pattern {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.2) 2px, transparent 2px),
+                      linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 2px, transparent 2px);
+  }
+
+  .bg-stars-pattern {
+    background-image: radial-gradient(white 2px, transparent 2.5px);
+    background-size: 30px 30px;
+  }
+  
+  .bg-american-stripes {
+    background-image: repeating-linear-gradient(
+      0deg,
+      var(--color-neo-red),
+      var(--color-neo-red) 20px,
+      white 20px,
+      white 40px
+    );
+  }
+  
+  .bg-american-stars {
+    background-color: var(--color-neo-blue);
+    background-image: radial-gradient(white 2.5px, transparent 3px);
+    background-size: 24px 24px;
+    background-position: 0 0, 12px 12px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: theme('colors.white');
+    border-radius: 10px;
+  }
+}

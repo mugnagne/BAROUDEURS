@@ -1,0 +1,8 @@
+{
+  "name": "World Cup Matches 2026",
+  "description": "An application to view football matches and team stats.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
