@@ -36,10 +36,10 @@ export const LandingPage = () => {
                 COUPE DU MONDE 2026 AUX USA
               </span>
               <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[0.85] mb-6 sm:mb-8 text-white drop-shadow-[4px_4px_0px_#000] sm:drop-shadow-[8px_8px_0px_#000] rotate-1">
-                BAROUDEUR 2026
+                BAROUDEURS 2026
               </h1>
               <p className="text-lg sm:text-xl md:text-3xl font-bold max-w-3xl mx-auto leading-tight mb-8 sm:mb-12 text-white bg-neo-black border-4 border-neo-black p-3 sm:p-4 -rotate-1 shadow-neo-md">
-                Le blog officiel de la BAROUDEUR League
+                Le blog officiel de la BAROUDEURS League
               </p>
               <div className="flex flex-col sm:flex-row gap-6">
                 <Link to="/blog" className="w-full sm:w-auto">
@@ -91,10 +91,10 @@ export const LandingPage = () => {
       {/* USA Banner */}
       <section className="bg-american-stripes border-y-8 border-neo-black py-16 overflow-hidden relative">
         <div className="flex animate-marquee whitespace-nowrap opacity-90 text-neo-black bg-white py-2 border-y-8 border-neo-black -rotate-2 absolute w-110% -left-4 top-1/4">
-           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEUR /</span>
-           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEUR /</span>
-           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEUR /</span>
-           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEUR /</span>
+           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>
+           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>
+           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>
+           <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>
         </div>
         <div className="container mx-auto max-w-7xl px-4 relative z-10 text-center text-white mt-12 bg-neo-blue border-8 border-neo-black p-12 shadow-neo-xl rotate-1">
             <div className="absolute inset-0 bg-american-stars opacity-50"></div>

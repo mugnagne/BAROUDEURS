@@ -34,7 +34,7 @@ export const Navbar = () => {
                   <span className="text-white font-black text-2xl tracking-tighter">B</span>
                 </div>
                 <span className="font-black text-3xl tracking-tighter group-hover:-rotate-1 transition-transform inline-block">
-                  BAROUDEUR<span className="text-neo-red">.</span>
+                  BAROUDEURS<span className="text-neo-red">.</span>
                 </span>
               </Link>
             </div>
