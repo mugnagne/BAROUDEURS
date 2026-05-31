@@ -16,7 +16,7 @@ export const LandingPage = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-24 overflow-hidden">
+    <div className="flex flex-col gap-24 overflow-hidden w-full">
       {/* Hero Section */}
       <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full mt-8 md:mt-12">
         {/* Decorative elements */}
@@ -59,32 +59,34 @@ export const LandingPage = () => {
       </section>
 
       {/* Featured Articles */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full relative">
-        <div className="absolute top-1/2 left-0 w-full h-full bg-american-stripes -z-10 opacity-20 -rotate-3 scale-110"></div>
-        <div className="flex justify-between items-end mb-12 border-b-8 border-neo-black pb-8 bg-white p-4">
-          <div>
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-neo-blue">DERNIERS POSTS</h2>
-            <p className="text-xl font-bold mt-2 text-neo-red uppercase">Humeurs, billets et analyses très amateures</p>
-          </div>
-          <Link to="/blog" className="hidden md:flex font-black uppercase text-xl hover:text-neo-blue transition-colors group items-center gap-2">
-            TOUT VOIR <ArrowRight strokeWidth={4} className="group-hover:translate-x-2 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post) => (
-            <div key={post.id} className="first:rotate-1 last:-rotate-1 lg:first:-translate-y-4 lg:last:translate-y-4 transition-transform hover:z-10">
-              <ArticleCard post={post} />
+      <section className="w-full relative py-12">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[150vw] h-[150%] bg-american-stripes -z-10 opacity-20 -rotate-3"></div>
+        <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full relative z-10">
+          <div className="flex justify-between items-end mb-12 border-b-8 border-neo-black pb-8 bg-white p-4">
+            <div>
+              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-neo-blue">DERNIERS POSTS</h2>
+              <p className="text-xl font-bold mt-2 text-neo-red uppercase">Humeurs, billets et analyses très amateures</p>
             </div>
-          ))}
-        </div>
-        
-        <div className="mt-12 text-center md:hidden bg-white p-4">
-          <Link to="/blog" className="block w-full">
-            <Button size="lg" variant="outline" className="w-full text-xl">
-              VOIR TOUS LES ARTICLES
-            </Button>
-          </Link>
+            <Link to="/blog" className="hidden md:flex font-black uppercase text-xl hover:text-neo-blue transition-colors group items-center gap-2">
+              TOUT VOIR <ArrowRight strokeWidth={4} className="group-hover:translate-x-2 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {posts.map((post) => (
+              <div key={post.id} className="first:rotate-1 last:-rotate-1 lg:first:-translate-y-4 lg:last:translate-y-4 transition-transform hover:z-10">
+                <ArticleCard post={post} />
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-12 text-center md:hidden bg-white p-4 border-4 border-black">
+            <Link to="/blog" className="block w-full">
+              <Button size="lg" variant="outline" className="w-full text-xl">
+                VOIR TOUS LES ARTICLES
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 

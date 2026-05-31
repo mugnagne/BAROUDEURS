@@ -1,1 +1,3 @@
-/*  /index.html  200
+/api/football/*  /.netlify/functions/football  200
+/api/email/*     /.netlify/functions/email     200
+/*               /index.html                   200

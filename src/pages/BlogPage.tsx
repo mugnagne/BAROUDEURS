@@ -12,8 +12,8 @@ export const BlogPage = () => {
   }, []);
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-      <div className="mb-16 relative">
+    <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="mb-16 relative w-full max-w-7xl mx-auto">
         <div className="absolute -top-10 -left-10 text-neo-red opacity-80 hidden md:block">
           <Star className="w-48 h-48 fill-current drop-shadow-[8px_8px_0px_#000]" />
         </div>
