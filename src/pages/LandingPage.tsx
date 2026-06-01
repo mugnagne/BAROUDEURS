@@ -12,6 +12,8 @@ export const LandingPage = () => {
   useEffect(() => {
     getPosts().then(fetched => {
       setPosts(fetched.slice(0, 3));
+    }).catch(error => {
+      console.error("Failed to load posts", error);
     });
   }, []);
 
@@ -59,13 +61,13 @@ export const LandingPage = () => {
       </section>
 
       {/* Featured Articles */}
-      <section className="w-full relative py-12">
+      <section className="w-full relative py-12 overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[150vw] h-[150%] bg-american-stripes -z-10 opacity-20 -rotate-3"></div>
         <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full relative z-10">
           <div className="flex justify-between items-end mb-12 border-b-8 border-neo-black pb-8 bg-white p-4">
             <div>
               <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-neo-blue">DERNIERS POSTS</h2>
-              <p className="text-xl font-bold mt-2 text-neo-red uppercase">Humeurs, billets et analyses très amateures</p>
+              <p className="text-xl font-bold mt-2 text-neo-red uppercase">Les analyses 100% à l'ouest des matchs de la coupe du monde</p>
             </div>
             <Link to="/blog" className="hidden md:flex font-black uppercase text-xl hover:text-neo-blue transition-colors group items-center gap-2">
               TOUT VOIR <ArrowRight strokeWidth={4} className="group-hover:translate-x-2 transition-transform" />
@@ -92,7 +94,7 @@ export const LandingPage = () => {
 
       {/* USA Banner */}
       <section className="bg-american-stripes border-y-8 border-neo-black py-16 overflow-hidden relative">
-        <div className="flex animate-marquee whitespace-nowrap opacity-90 text-neo-black bg-white py-2 border-y-8 border-neo-black -rotate-2 absolute w-110% -left-4 top-1/4">
+        <div className="flex animate-marquee whitespace-nowrap opacity-90 text-neo-black bg-white py-2 border-y-8 border-neo-black -rotate-2 absolute w-[110%] -left-4 top-1/4">
            <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>
            <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>
            <span className="text-7xl font-black uppercase tracking-tighter mr-8">BAROUDEURS /</span>

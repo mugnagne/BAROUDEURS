@@ -24,7 +24,7 @@ import parse, { domToReact, HTMLReactParserOptions, Element } from 'html-react-p
       }
     }
   };
-import { BlogPost, Visionnaire } from '@/types';
+import { BlogPost, Joueur } from '@/types';
 import { useAuth } from '@/lib/auth';
 import { doc, setDoc, increment, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -32,7 +32,7 @@ import { db } from '@/lib/firebase';
 export const PostPage = () => {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<BlogPost | null>(null);
-  const [visionnaires, setVisionnaires] = useState<Visionnaire[]>([]);
+  const [joueurs, setJoueurs] = useState<Joueur[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -42,19 +42,19 @@ export const PostPage = () => {
         setPost(fetched || null);
         if (fetched) {
           // Fetch visionnaires details
-          if (fetched.visionnaireIds && fetched.visionnaireIds.length > 0) {
-            const visList: Visionnaire[] = [];
-            for (const vId of fetched.visionnaireIds) {
+          if (fetched.joueurIds && fetched.joueurIds.length > 0) {
+            const visList: Joueur[] = [];
+            for (const vId of fetched.joueurIds) {
               try {
-                const docSnap = await getDoc(doc(db, 'visionnaires', vId));
+                const docSnap = await getDoc(doc(db, 'joueurs', vId));
                 if (docSnap.exists()) {
-                  visList.push({ id: docSnap.id, ...docSnap.data() } as Visionnaire);
+                  visList.push({ id: docSnap.id, ...docSnap.data() } as Joueur);
                 }
               } catch (e) {
                  console.error(e);
               }
             }
-            setVisionnaires(visList);
+            setJoueurs(visList);
           }
 
           // Increment views
@@ -178,13 +178,13 @@ export const PostPage = () => {
         )}
       </div>
 
-      {visionnaires.length > 0 && (
+      {joueurs.length > 0 && (
         <div className="mb-24 bg-neo-blue text-white border-8 border-neo-cream p-8 shadow-neo-lg rotate-[0.5deg]">
           <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-8 text-neo-yellow">
-            Les Visionnaires
+            Les Joueurs
           </h2>
           <div className="flex flex-wrap gap-6">
-            {visionnaires.map(v => (
+            {joueurs.map(v => (
               <div key={v.id} className="flex flex-col items-center gap-3 w-32 pb-4 bg-white border-4 border-neo-white text-neo-black hover:-translate-y-2 transition-transform cursor-crosshair">
                 <div className="w-full h-24 border-b-4 border-neo-white bg-neo-cream">
                   <img src={v.avatarUrl} alt={v.name} className="w-full h-full object-cover transition-all" />

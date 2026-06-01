@@ -72,7 +72,7 @@ export const Comments: React.FC<CommentsProps> = ({ postId }) => {
 
       {!user ? (
         <div className="bg-neo-cream border-4 border-neo-black p-6 mb-8 -rotate-1 shadow-neo-sm text-center font-bold">
-          <p className="mb-4">Connectez-vous pour laisser un commentaire et rejoindre les visionnaires.</p>
+          <p className="mb-4">Connectez-vous pour laisser un commentaire et rejoindre les joueurs.</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mb-12">

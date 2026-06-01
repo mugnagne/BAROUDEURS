@@ -30,10 +30,17 @@ export interface MatchDetails {
   };
 }
 
-export interface Visionnaire {
+export interface Joueur {
   id: string;
   name: string;
   avatarUrl: string;
+  email?: string;
+}
+
+export interface MailingList {
+  id: string;
+  name: string;
+  joueurIds: string[];
 }
 
 export interface BlogPost {
@@ -50,5 +57,6 @@ export interface BlogPost {
   ownerId?: string;
   createdAt?: number;
   updatedAt?: number;
-  visionnaireIds?: string[];
+  joueurIds?: string[];
+  mailingListId?: string;
 }

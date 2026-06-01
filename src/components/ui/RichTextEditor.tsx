@@ -14,11 +14,13 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
+import { createPortal } from 'react-dom';
+
 const EditorModal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
   if (!isOpen) return null;
   
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-neo-cream border-4 border-neo-black p-6 w-full max-w-lg shadow-[8px_8px_0px_#000] rotate-1">
         <div className="flex justify-between items-center mb-6 border-b-4 border-neo-black pb-4">
           <h3 className="font-black text-2xl uppercase tracking-tighter">{title}</h3>
@@ -30,7 +32,8 @@ const EditorModal = ({ isOpen, onClose, title, children }: { isOpen: boolean, on
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -74,7 +74,10 @@ service cloud.firestore {
           !('id' in data) || (data.id is string && data.id.size() <= 128)
         )
         && (
-          !('visionnaireIds' in data) || data.visionnaireIds is list
+          !('joueurIds' in data) || data.joueurIds is list
+        )
+        && (
+          !('mailingListId' in data) || data.mailingListId is string
         );
     }
 
@@ -143,6 +146,20 @@ service cloud.firestore {
     match /visionnaires/{vid} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+    match /joueurs/{jid} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /mailingLists/{mid} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /calendarMatches/{matchId} {
+      allow read: if isAuthorOrAdmin();
+      allow create: if isAuthorOrAdmin();
+      allow update: if isAuthorOrAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

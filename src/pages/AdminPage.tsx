@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { getPosts } from '@/data/mockPosts';
-import { BlogPost, Visionnaire } from '@/types';
-import { Trash2, Shield, Edit, Eye, MousePointerClick, Share2, Users } from 'lucide-react';
+import { BlogPost, Joueur, MailingList } from '@/types';
+import { Trash2, Shield, Edit, Eye, MousePointerClick, Share2, Users, Mail, Edit2, Check, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface UserData {
@@ -28,11 +28,22 @@ export const AdminPage = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [stats, setStats] = useState<Record<string, PostStatsData>>({});
-  const [visionnaires, setVisionnaires] = useState<Visionnaire[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'visionnaires'>('users');
-  const [newVisName, setNewVisName] = useState('');
-  const [newVisImg, setNewVisImg] = useState('');
+  const [joueurs, setJoueurs] = useState<Joueur[]>([]);
+  const [mailingLists, setMailingLists] = useState<MailingList[]>([]);
+  const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'joueurs' | 'mailingLists'>('users');
+  const [newJoueurName, setNewJoueurName] = useState('');
+  const [newJoueurImg, setNewJoueurImg] = useState('');
+  const [newJoueurEmail, setNewJoueurEmail] = useState('');
+  
+  const [newMailingListName, setNewMailingListName] = useState('');
+  const [selectedJoueursForML, setSelectedJoueursForML] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const [sortColumn, setSortColumn] = useState<'name' | 'email'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  const [editJoueurId, setEditJoueurId] = useState<string | null>(null);
+  const [editJoueurData, setEditJoueurData] = useState<Partial<Joueur>>({});
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
@@ -60,10 +71,15 @@ export const AdminPage = () => {
     });
     setStats(statsObj);
 
-    // Load visionnaires
-    const visSnap = await getDocs(collection(db, 'visionnaires'));
-    const fetchedVis = visSnap.docs.map(d => ({ id: d.id, ...d.data() } as Visionnaire));
-    setVisionnaires(fetchedVis);
+    // Load joueurs
+    const joueursSnap = await getDocs(collection(db, 'joueurs'));
+    const fetchedJoueurs = joueursSnap.docs.map(d => ({ id: d.id, ...d.data() } as Joueur));
+    setJoueurs(fetchedJoueurs);
+
+    // Load mailing lists
+    const mlSnap = await getDocs(collection(db, 'mailingLists'));
+    const fetchedML = mlSnap.docs.map(d => ({ id: d.id, ...d.data() } as MailingList));
+    setMailingLists(fetchedML);
   };
 
   useEffect(() => {
@@ -99,39 +115,107 @@ export const AdminPage = () => {
     }
   };
 
-  const handleAddVisionnaire = async (e: React.FormEvent) => {
+  const handleAddJoueur = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVisName.trim() || !newVisImg.trim()) return;
+    if (!newJoueurName.trim() || !newJoueurImg.trim()) return;
     try {
-      const docRef = await addDoc(collection(db, 'visionnaires'), {
-        name: newVisName,
-        avatarUrl: newVisImg
+      const docRef = await addDoc(collection(db, 'joueurs'), {
+        name: newJoueurName,
+        avatarUrl: newJoueurImg,
+        email: newJoueurEmail
       });
-      setVisionnaires([...visionnaires, { id: docRef.id, name: newVisName, avatarUrl: newVisImg }]);
-      setNewVisName('');
-      setNewVisImg('');
+      setJoueurs([...joueurs, { id: docRef.id, name: newJoueurName, avatarUrl: newJoueurImg, email: newJoueurEmail }]);
+      setNewJoueurName('');
+      setNewJoueurImg('');
+      setNewJoueurEmail('');
     } catch (error) {
       console.error(error);
-      alert('Erreur lors de l\'ajout du visionnaire');
+      alert('Erreur lors de l\'ajout du joueur');
     }
   };
 
-  const handleDeleteVisionnaire = async (vid: string) => {
+  const handleDeleteJoueur = async (vid: string) => {
     if (confirmDeleteId !== vid) {
       setConfirmDeleteId(vid);
       return;
     }
     
     try {
-      await deleteDoc(doc(db, 'visionnaires', vid));
-      setVisionnaires(visionnaires.filter(v => v.id !== vid));
+      await deleteDoc(doc(db, 'joueurs', vid));
+      setJoueurs(joueurs.filter(v => v.id !== vid));
       setConfirmDeleteId(null);
     } catch (e) {
       console.error(e);
-      alert('Erreur lors de la suppression du visionnaire');
+      alert('Erreur lors de la suppression du joueur');
       setConfirmDeleteId(null);
     }
   };
+
+  const handleAddMailingList = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMailingListName.trim()) return;
+    try {
+      const docRef = await addDoc(collection(db, 'mailingLists'), {
+        name: newMailingListName,
+        joueurIds: selectedJoueursForML
+      });
+      setMailingLists([...mailingLists, { id: docRef.id, name: newMailingListName, joueurIds: selectedJoueursForML }]);
+      setNewMailingListName('');
+      setSelectedJoueursForML([]);
+    } catch (error) {
+      console.error(error);
+      alert('Erreur lors de la création de la mailing list');
+    }
+  };
+
+  const handleDeleteMailingList = async (mlId: string) => {
+    if (confirmDeleteId !== mlId) {
+      setConfirmDeleteId(mlId);
+      return;
+    }
+    
+    try {
+      await deleteDoc(doc(db, 'mailingLists', mlId));
+      setMailingLists(mailingLists.filter(ml => ml.id !== mlId));
+      setConfirmDeleteId(null);
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de la suppression de la mailing list');
+      setConfirmDeleteId(null);
+    }
+  };
+
+  const handleStartEditJoueur = (v: Joueur) => {
+    setEditJoueurId(v.id);
+    setEditJoueurData({ name: v.name, email: v.email, avatarUrl: v.avatarUrl });
+  };
+
+  const handleSaveEditJoueur = async () => {
+    if (!editJoueurId) return;
+    try {
+      await updateDoc(doc(db, 'joueurs', editJoueurId), editJoueurData as any);
+      setJoueurs(joueurs.map(j => j.id === editJoueurId ? { ...j, ...editJoueurData } : j));
+      setEditJoueurId(null);
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de la mise à jour du joueur');
+    }
+  };
+
+  const toggleSort = (col: 'name' | 'email') => {
+    if (sortColumn === col) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedJoueurs = [...joueurs].sort((a, b) => {
+    const valA = (a[sortColumn] || '').toLowerCase();
+    const valB = (b[sortColumn] || '').toLowerCase();
+    return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+  });
 
   if (loading || !user) return <div className="p-20 text-center font-black text-4xl">CHARGEMENT...</div>;
 
@@ -160,10 +244,16 @@ export const AdminPage = () => {
           <Edit className="mr-2 h-5 w-5" /> Articles & Statistiques
         </Button>
         <Button 
-          variant={activeTab === 'visionnaires' ? 'primary' : 'secondary'} 
-          onClick={() => setActiveTab('visionnaires')}
+          variant={activeTab === 'joueurs' ? 'primary' : 'secondary'} 
+          onClick={() => setActiveTab('joueurs')}
         >
-          <Users className="mr-2 h-5 w-5" /> Visionnaires
+          <Users className="mr-2 h-5 w-5" /> Joueurs
+        </Button>
+        <Button 
+          variant={activeTab === 'mailingLists' ? 'primary' : 'secondary'} 
+          onClick={() => setActiveTab('mailingLists')}
+        >
+          <Mail className="mr-2 h-5 w-5" /> Mail Lists
         </Button>
       </div>
 
@@ -242,25 +332,35 @@ export const AdminPage = () => {
           </table>
         </div>
       )}
-      {activeTab === 'visionnaires' && (
+      {activeTab === 'joueurs' && (
         <div className="bg-white border-4 border-neo-black shadow-neo-lg p-6 relative">
-          <form onSubmit={handleAddVisionnaire} className="mb-8 flex gap-4 items-end">
-            <div className="flex-1">
+          <form onSubmit={handleAddJoueur} className="mb-8 flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
               <label className="block font-bold">Nom</label>
               <input 
                 type="text" 
-                value={newVisName}
-                onChange={e => setNewVisName(e.target.value)}
+                value={newJoueurName}
+                onChange={e => setNewJoueurName(e.target.value)}
                 className="w-full border-4 border-neo-black p-2 font-bold"
                 placeholder="Ex: Paul"
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block font-bold">Email</label>
+              <input 
+                type="email" 
+                value={newJoueurEmail}
+                onChange={e => setNewJoueurEmail(e.target.value)}
+                className="w-full border-4 border-neo-black p-2 font-bold"
+                placeholder="paul@example.com"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
               <label className="block font-bold">URL Avatar</label>
               <input 
                 type="text" 
-                value={newVisImg}
-                onChange={e => setNewVisImg(e.target.value)}
+                value={newJoueurImg}
+                onChange={e => setNewJoueurImg(e.target.value)}
                 className="w-full border-4 border-neo-black p-2 font-bold"
                 placeholder="https://..."
               />
@@ -272,23 +372,135 @@ export const AdminPage = () => {
             <thead>
               <tr className="border-b-4 border-neo-black">
                 <th className="py-4 px-4 font-black uppercase">Avatar</th>
-                <th className="py-4 px-4 font-black uppercase">Nom</th>
+                <th 
+                  className="py-4 px-4 font-black uppercase cursor-pointer hover:bg-neo-cream transition-colors text-left select-none"
+                  onClick={() => toggleSort('name')}
+                >
+                  <div className="flex items-center gap-2">Nom {sortColumn === 'name' && (sortDirection === 'asc' ? <ArrowUp className="w-4 h-4"/> : <ArrowDown className="w-4 h-4"/>)}</div>
+                </th>
+                <th 
+                  className="py-4 px-4 font-black uppercase cursor-pointer hover:bg-neo-cream transition-colors text-left select-none"
+                  onClick={() => toggleSort('email')}
+                >
+                  <div className="flex items-center gap-2">Email {sortColumn === 'email' && (sortDirection === 'asc' ? <ArrowUp className="w-4 h-4"/> : <ArrowDown className="w-4 h-4"/>)}</div>
+                </th>
                 <th className="py-4 px-4 font-black uppercase text-right">Action</th>
               </tr>
             </thead>
             <tbody>
-              {visionnaires.map(v => (
+              {sortedJoueurs.map(v => (
                 <tr key={v.id} className="border-b-2 border-neo-black border-dashed">
+                  {editJoueurId === v.id ? (
+                    <td colSpan={4} className="py-4 px-4">
+                      <div className="flex flex-col gap-4 bg-neo-cream p-4 border-4 border-neo-black">
+                        <div className="flex flex-wrap gap-4 items-center">
+                          <input type="text" value={editJoueurData.name || ''} onChange={e => setEditJoueurData({...editJoueurData, name: e.target.value})} className="border-4 border-neo-black p-2 font-bold w-full md:w-auto" placeholder="Nom"/>
+                          <input type="email" value={editJoueurData.email || ''} onChange={e => setEditJoueurData({...editJoueurData, email: e.target.value})} className="border-4 border-neo-black p-2 font-bold w-full md:w-auto" placeholder="Email"/>
+                          <input type="text" value={editJoueurData.avatarUrl || ''} onChange={e => setEditJoueurData({...editJoueurData, avatarUrl: e.target.value})} className="border-4 border-neo-black p-2 font-bold w-full md:w-auto" placeholder="Avatar URL"/>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="primary" onClick={handleSaveEditJoueur} className="p-2 w-auto"><Check className="w-5 h-5"/></Button>
+                          <Button variant="secondary" onClick={() => setEditJoueurId(null)} className="p-2 w-auto"><X className="w-5 h-5"/></Button>
+                        </div>
+                      </div>
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-4 px-4">
+                        <img src={v.avatarUrl} alt={v.name} className="w-12 h-12 object-cover border-2 border-neo-black rounded-full" />
+                      </td>
+                      <td className="py-4 px-4 font-bold">{v.name}</td>
+                      <td className="py-4 px-4">{v.email || '-'}</td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => handleStartEditJoueur(v)}
+                            className="bg-neo-blue text-white p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteJoueur(v.id)}
+                            className={`${confirmDeleteId === v.id ? 'bg-neo-black text-white px-4' : 'bg-neo-red text-white'} p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold`}
+                          >
+                            {confirmDeleteId === v.id ? 'Sûr ?' : <Trash2 className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'mailingLists' && (
+        <div className="bg-white border-4 border-neo-black shadow-neo-lg p-6 relative">
+          <form onSubmit={handleAddMailingList} className="mb-8 flex flex-col gap-4">
+            <div>
+              <label className="block font-bold">Nom de la Mail List</label>
+              <input 
+                type="text" 
+                value={newMailingListName}
+                onChange={e => setNewMailingListName(e.target.value)}
+                className="w-full border-4 border-neo-black p-2 font-bold max-w-md"
+                placeholder="Ex: Toute l'équipe"
+              />
+            </div>
+            
+            <div>
+              <label className="block font-bold mb-2">Sélectionnez les Joueurs</label>
+              <div className="flex flex-wrap gap-3">
+                {joueurs.map(j => (
+                  <label key={j.id} className={`flex items-center gap-2 p-2 border-2 border-neo-black cursor-pointer ${selectedJoueursForML.includes(j.id) ? 'bg-neo-blue text-white' : 'bg-neo-cream'}`}>
+                    <input 
+                      type="checkbox" 
+                      className="hidden"
+                      checked={selectedJoueursForML.includes(j.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedJoueursForML([...selectedJoueursForML, j.id]);
+                        else setSelectedJoueursForML(selectedJoueursForML.filter(id => id !== j.id));
+                      }}
+                    />
+                    <img src={j.avatarUrl} alt={j.name} className="w-6 h-6 rounded-full border border-neo-black" />
+                    <span className="font-bold text-sm tracking-tight">{j.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Button type="submit" variant="primary" className="self-start">Créer la Mail List</Button>
+          </form>
+
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b-4 border-neo-black">
+                <th className="py-4 px-4 font-black uppercase">Nom</th>
+                <th className="py-4 px-4 font-black uppercase">Membres</th>
+                <th className="py-4 px-4 font-black uppercase text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mailingLists.map(ml => (
+                <tr key={ml.id} className="border-b-2 border-neo-black border-dashed">
+                  <td className="py-4 px-4 font-bold">{ml.name}</td>
                   <td className="py-4 px-4">
-                    <img src={v.avatarUrl} alt={v.name} className="w-12 h-12 object-cover border-2 border-neo-black rounded-full" />
+                    <div className="flex -space-x-2">
+                       {ml.joueurIds.map(jid => {
+                         const j = joueurs.find(jou => jou.id === jid);
+                         if (!j) return null;
+                         return <img key={jid} src={j.avatarUrl} alt={j.name} title={j.name} className="w-8 h-8 rounded-full border-2 border-neo-black object-cover" />;
+                       })}
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-bold">{v.name}</td>
                   <td className="py-4 px-4 text-right">
                     <button 
-                      onClick={() => handleDeleteVisionnaire(v.id)}
-                      className={`${confirmDeleteId === v.id ? 'bg-neo-black text-white px-4' : 'bg-neo-red text-white'} p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold`}
+                      onClick={() => handleDeleteMailingList(ml.id)}
+                      className={`${confirmDeleteId === ml.id ? 'bg-neo-black text-white px-4' : 'bg-neo-red text-white'} p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold`}
                     >
-                      {confirmDeleteId === v.id ? 'Sûr ?' : <Trash2 className="w-5 h-5" />}
+                      {confirmDeleteId === ml.id ? 'Sûr ?' : <Trash2 className="w-5 h-5" />}
                     </button>
                   </td>
                 </tr>

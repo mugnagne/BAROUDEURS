@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { MatchDetails, MatchHighlight, TeamDetails } from '@/types';
-import { worldCupTeams, formations, countryFlagMap } from '@/data/worldCupTeams';
+import { worldCupTeams, formations, countryFlagMap, countryColorMap } from '@/data/worldCupTeams';
 import { Plus, Trash2, Trophy, Clock, User, FileText, Image as ImageIcon, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { MatchApiImporter } from './MatchApiImporter';
@@ -78,6 +78,7 @@ export const MatchReportEditor = ({ data, onChange }: MatchReportEditorProps) =>
     
     if (field === 'name') {
         teamUpdate.flagUrl = countryFlagMap[value] || '';
+        teamUpdate.color = countryColorMap[value] || '#000000';
     }
 
     onChange({

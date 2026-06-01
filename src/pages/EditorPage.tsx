@@ -4,11 +4,13 @@ import { savePost, updatePost, getPost } from '@/data/mockPosts';
 import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { MatchReportEditor } from '@/components/features/MatchReportEditor';
-import { MatchDetails, BlogPost, Visionnaire } from '@/types';
+import { MatchDetails, BlogPost, Joueur, MailingList } from '@/types';
 import { useAuth } from '@/lib/auth';
 import { convertImageToBase64 } from '@/lib/imageUtils';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { X, Trophy, Check } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export const EditorPage = () => {
   const { id: editId } = useParams<{ id: string }>();
@@ -24,15 +26,22 @@ export const EditorPage = () => {
     imageUrl: '',
     tags: ''
   });
-  const [visionnaires, setVisionnaires] = useState<Visionnaire[]>([]);
-  const [selectedVisionnaires, setSelectedVisionnaires] = useState<string[]>([]);
+  const [joueurs, setJoueurs] = useState<Joueur[]>([]);
+  const [selectedJoueurs, setSelectedJoueurs] = useState<string[]>([]);
+  const [mailingLists, setMailingLists] = useState<MailingList[]>([]);
+  const [selectedMailingList, setSelectedMailingList] = useState<string>('');
+  const [showHallOfFamePopup, setShowHallOfFamePopup] = useState(false);
 
   useEffect(() => {
     if (!user || !['admin', 'author'].includes(user.role as string)) {
       navigate('/');
     } else {
-       getDocs(collection(db, 'visionnaires')).then(snap => {
-         setVisionnaires(snap.docs.map(d => ({id: d.id, ...d.data()} as Visionnaire)));
+       getDocs(collection(db, 'joueurs')).then(snap => {
+         setJoueurs(snap.docs.map(d => ({id: d.id, ...d.data()} as Joueur)));
+       }).catch(console.error);
+
+       getDocs(collection(db, 'mailingLists')).then(snap => {
+         setMailingLists(snap.docs.map(d => ({id: d.id, ...d.data()} as MailingList)));
        }).catch(console.error);
     }
   }, [user, navigate]);
@@ -55,9 +64,10 @@ export const EditorPage = () => {
           });
           setIsMatchReport(!!existingPost.isMatchReport);
           setMatchDetails(existingPost.matchDetails);
-          setSelectedVisionnaires(existingPost.visionnaireIds || []);
+          setSelectedJoueurs(existingPost.joueurIds || []);
+          setSelectedMailingList(existingPost.mailingListId || '');
         }
-      });
+      }).catch(err => console.error("Failed to fetch post", err));
     }
   }, [editId, user, navigate]);
 
@@ -101,7 +111,8 @@ export const EditorPage = () => {
       date: new Date().toISOString(),
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       isMatchReport,
-      visionnaireIds: selectedVisionnaires
+      joueurIds: selectedJoueurs,
+      mailingListId: selectedMailingList
     };
 
     if (isMatchReport && matchDetails) {
@@ -141,7 +152,7 @@ export const EditorPage = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 bg-white p-4 sm:p-8 md:p-12 border-4 sm:border-8 border-neo-black shadow-neo-lg -rotate-1 relative overflow-hidden">
+      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 bg-white p-4 sm:p-6 md:p-8 border-4 sm:border-8 border-neo-black shadow-neo-lg -rotate-1 relative overflow-hidden max-w-full w-full box-border">
         <div className="absolute inset-0 bg-american-stripes opacity-10 pointer-events-none"></div>
         
         <div className="relative z-10">
@@ -247,25 +258,75 @@ export const EditorPage = () => {
            </div>
         </div>
 
+        <div className="relative z-10 pb-8 px-4">
+          <label className="block text-xl sm:text-2xl font-black uppercase mb-4 pt-4">Les Joueurs (Hall of Fame)</label>
+          <div className="flex items-center gap-4">
+            <Button type="button" variant="secondary" onClick={() => setShowHallOfFamePopup(true)} className="flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              Gérer le Hall of Fame ({selectedJoueurs.length} sélectionnés)
+            </Button>
+          </div>
+          
+          {showHallOfFamePopup && createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 overflow-y-auto w-full h-full">
+              <div className="bg-white border-4 border-neo-black shadow-neo-brutal p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+                <div className="flex justify-between items-center mb-6 border-b-4 border-neo-black pb-4">
+                  <h2 className="text-2xl sm:text-3xl font-black uppercase flex items-center gap-3">
+                    <Trophy className="w-8 h-8 text-neo-yellow" /> 
+                    Sélectionner les joueurs
+                  </h2>
+                  <button 
+                    type="button"
+                    onClick={() => setShowHallOfFamePopup(false)}
+                    className="p-2 border-2 text-white bg-neo-black border-neo-black hover:bg-neo-red transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="flex flex-wrap gap-4">
+                  {joueurs.map(v => (
+                    <label key={v.id} className={`flex items-center gap-3 p-3 border-4 border-neo-black cursor-pointer transition-colors ${selectedJoueurs.includes(v.id) ? 'bg-neo-blue text-white' : 'bg-neo-cream hover:bg-neo-yellow'}`}>
+                      <input 
+                        type="checkbox" 
+                        className="hidden"
+                        checked={selectedJoueurs.includes(v.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedJoueurs([...selectedJoueurs, v.id]);
+                          else setSelectedJoueurs(selectedJoueurs.filter(id => id !== v.id));
+                        }}
+                      />
+                      <img src={v.avatarUrl} alt={v.name} className="w-10 h-10 object-cover border-2 border-current rounded-full" />
+                      <span className="font-bold text-lg">{v.name}</span>
+                    </label>
+                  ))}
+                  {joueurs.length === 0 && <span className="font-bold">Aucun joueur configuré (voir panel admin).</span>}
+                </div>
+                
+                <div className="mt-8 pt-4 border-t-4 border-neo-black flex justify-end">
+                  <Button type="button" variant="primary" onClick={() => setShowHallOfFamePopup(false)}>
+                    Valider {selectedJoueurs.length > 0 && `(${selectedJoueurs.length})`}
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+        </div>
+
         <div className="relative z-10 pb-8">
-          <label className="block text-xl sm:text-2xl font-black uppercase mb-4 pl-4 pt-4">Les Visionnaires (Hall of Fame)</label>
-          <div className="flex flex-wrap gap-4 px-4">
-            {visionnaires.map(v => (
-              <label key={v.id} className={`flex items-center gap-3 p-3 border-4 border-neo-black cursor-pointer transition-colors ${selectedVisionnaires.includes(v.id) ? 'bg-neo-blue text-white' : 'bg-neo-cream hover:bg-neo-yellow'}`}>
-                <input 
-                  type="checkbox" 
-                  className="hidden"
-                  checked={selectedVisionnaires.includes(v.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) setSelectedVisionnaires([...selectedVisionnaires, v.id]);
-                    else setSelectedVisionnaires(selectedVisionnaires.filter(id => id !== v.id));
-                  }}
-                />
-                <img src={v.avatarUrl} alt={v.name} className="w-10 h-10 object-cover border-2 border-current rounded-full" />
-                <span className="font-bold text-lg">{v.name}</span>
-              </label>
-            ))}
-            {visionnaires.length === 0 && <span className="font-bold">Aucun visionnaire configuré (voir panel admin).</span>}
+          <label className="block text-xl sm:text-2xl font-black uppercase mb-4 pl-4 pt-4">Mail List de diffusion</label>
+          <div className="px-4">
+            <select
+              value={selectedMailingList}
+              onChange={(e) => setSelectedMailingList(e.target.value)}
+              className="w-full h-14 sm:h-16 px-4 bg-neo-cream border-4 border-neo-black font-bold text-lg sm:text-xl focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all cursor-pointer"
+            >
+              <option value="">-- Ne pas envoyer par mail --</option>
+              {mailingLists.map(ml => (
+                <option key={ml.id} value={ml.id}>{ml.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 

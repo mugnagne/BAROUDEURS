@@ -12,6 +12,7 @@ import { EditorPage } from './pages/EditorPage';
 import { WorldCupPage } from './pages/WorldCupPage';
 import { TeamsPage } from './pages/TeamsPage';
 import { AdminPage } from './pages/AdminPage';
+import { CalendarPage } from './pages/CalendarPage';
 import { AuthProvider } from './lib/auth';
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="world-cup" element={<WorldCupPage />} />
             <Route path="teams" element={<TeamsPage />} />
             <Route path="admin" element={<AdminPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
