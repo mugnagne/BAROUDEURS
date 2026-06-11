@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ScrollToTop } from './components/ScrollToTop';
 import { Layout } from './components/layout/Layout';
 import { LandingPage } from './pages/LandingPage';
 import { BlogPage } from './pages/BlogPage';
@@ -15,10 +16,14 @@ import { AdminPage } from './pages/AdminPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { AuthProvider } from './lib/auth';
 
+import { WelcomePopup } from './components/WelcomePopup';
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
+        <WelcomePopup />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<LandingPage />} />

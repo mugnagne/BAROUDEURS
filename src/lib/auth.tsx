@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 interface AppUser extends User {
   role?: 'reader' | 'author' | 'admin';
   pseudo?: string;
   photoUrl?: string;
+  joueurId?: string;
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   signUpWithEmail: (email: string, pass: string, pseudo: string) => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   updateUserProfile: (pseudo: string, photoUrl: string) => Promise<void>;
+  linkJoueur: (joueurId: string, pseudo: string, photoUrl: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   signUpWithEmail: async () => {},
   signInWithEmail: async () => {},
   updateUserProfile: async () => {},
+  linkJoueur: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -47,15 +50,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               role = 'admin';
           }
 
+          let joueurId = undefined;
+
           if (docSnap.exists()) {
              role = docSnap.data().role || role;
              pseudo = docSnap.data().pseudo || pseudo;
              photoUrl = docSnap.data().photoUrl || photoUrl;
-          } else {
-             await setDoc(docRef, { email: u.email, role, pseudo, photoUrl });
+             joueurId = docSnap.data().joueurId;
+          } 
+          
+          if (!joueurId && u.email) {
+             // Auto-link if email matches a joueur
+             const q = query(collection(db, 'joueurs'), where('email', '==', u.email));
+             const qSnap = await getDocs(q);
+             if (!qSnap.empty) {
+               const joueur = qSnap.docs[0];
+               joueurId = joueur.id;
+               pseudo = joueur.data().name;
+               photoUrl = joueur.data().avatarUrl;
+             }
           }
 
-          setUser({ ...u, role, pseudo, photoUrl } as AppUser);
+          if (!docSnap.exists()) {
+             const newData: any = { email: u.email, role, pseudo, photoUrl };
+             if (joueurId) newData.joueurId = joueurId;
+             await setDoc(docRef, newData);
+          } else if (!docSnap.data().joueurId && joueurId) {
+             await updateDoc(docRef, { joueurId, pseudo, photoUrl });
+          }
+
+          setUser({ ...u, role, pseudo, photoUrl, joueurId } as AppUser);
         } catch (e) {
           console.error("Auth context error:", e);
           setUser(u as AppUser);
@@ -101,8 +125,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     await updateProfile(auth.currentUser, profileUpdates);
     await updateDoc(doc(db, 'users', auth.currentUser.uid), { pseudo, photoUrl });
+
+    if (user?.joueurId) {
+      await updateDoc(doc(db, 'joueurs', user.joueurId), { name: pseudo, avatarUrl: photoUrl });
+    }
+
     if (user) {
        setUser({ ...user, pseudo, photoUrl } as AppUser);
+    }
+  };
+
+  const linkJoueur = async (joueurId: string, pseudo: string, photoUrl: string) => {
+    if (!auth.currentUser) return;
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), { joueurId, pseudo, photoUrl });
+    await updateDoc(doc(db, 'joueurs', joueurId), { email: auth.currentUser.email });
+    
+    // Optionally update Auth profile too, with length check for photoURL
+    const profileUpdates: { displayName: string; photoURL?: string } = { displayName: pseudo };
+    if (!photoUrl || photoUrl.length < 2000) {
+      profileUpdates.photoURL = photoUrl;
+    }
+    await updateProfile(auth.currentUser, profileUpdates);
+
+    if (user) {
+      setUser({ ...user, joueurId, pseudo, photoUrl } as AppUser);
     }
   };
 
@@ -111,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, logOut, signUpWithEmail, signInWithEmail, updateUserProfile }}>
+    <AuthContext.Provider value={{ user, loading, signIn, logOut, signUpWithEmail, signInWithEmail, updateUserProfile, linkJoueur }}>
       {children}
     </AuthContext.Provider>
   );

@@ -20,6 +20,11 @@
     background-size: 20px 20px;
   }
 
+  /* Fix for invisible caret on Windows in inputs & rich text editors */
+  input, textarea, [contenteditable] {
+    caret-color: var(--color-neo-black) !important;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-black tracking-tighter uppercase;
   }
@@ -100,5 +105,105 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: theme('colors.white');
     border-radius: 10px;
+  }
+}
+
+/* Mobile-Native Polish */
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll */
+  html, body, #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Force le passage des structures en colonnes */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .flex:not(.items-center):not(.justify-between):not(.gap-2):not(.gap-1):not(.flex-col):not(.flex-row) {
+    flex-direction: column !important;
+  }
+  
+  /* Réduction globale margins & paddings pour plus d'espace sur mobile */
+  .p-4, .p-6, .p-8, .p-10, .p-12 { padding: 1rem !important; }
+  .py-4, .py-6, .py-8, .py-10, .py-12 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  .px-4, .px-6, .px-8, .px-10, .px-12 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .m-8, .m-12, .m-16 { margin: 1.5rem !important; }
+  .mb-8, .mb-12, .mb-16 { margin-bottom: 1.5rem !important; }
+  .mt-8, .mt-12, .mt-16 { margin-top: 1.5rem !important; }
+  .gap-8, .gap-12 { gap: 1rem !important; }
+
+  /* Typography Scaling sans zoom - Lisibilité optimale */
+  .text-4xl, .text-5xl, .text-6xl, .text-8xl, .text-9xl {
+    font-size: clamp(1.75rem, 8vw, 2.5rem) !important; 
+    line-height: 1.1 !important;
+  }
+  .text-3xl {
+    font-size: 1.75rem !important; 
+    line-height: 1.2 !important;
+  }
+  .text-2xl {
+    font-size: 1.5rem !important; 
+    line-height: 1.2 !important;
+  }
+
+  /* Empêche le zoom auto sur input/textarea sous iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Ergonomie tactile 44x44px minimum */
+  button, 
+  a, 
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  select, 
+  textarea,
+  .cursor-pointer,
+  th.cursor-pointer {
+    min-height: 44px;
+  }
+
+  /* Table responsive */
+  table {
+    display: block !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Layout tweaks for absolute overlays that break */
+  .absolute.-top-10.-left-10 {
+    display: none !important;
+  }
+  
+  /* Prevent shadow / rotation collision on edges by safely scaling shadows down */
+  .shadow-neo-xl { box-shadow: 4px 4px 0px #000 !important; }
+  .shadow-neo-lg { box-shadow: 4px 4px 0px #000 !important; }
+  .shadow-neo-md { box-shadow: 2px 2px 0px #000 !important; }
+  .shadow-neo-sm { box-shadow: 2px 2px 0px #000 !important; }
+  .shadow-neo-xl-white { box-shadow: 4px 4px 0px #fff !important; }
+  
+  /* Make sure container paddings are respected for full width items */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1.5rem !important; /* Extra padding on right to account for shadows */
+  }
+
+  /* Reduce neo borders slightly to gain space */
+  .border-8 { border-width: 4px !important; }
+  
+  /* Réduire les rotations extrêmes qui font déborder les boîtes en mobile */
+  .rotate-1, .-rotate-1, .rotate-2, .-rotate-2, .rotate-3, .-rotate-3, .rotate-6, .-rotate-6 {
+    transform: rotate(0deg) !important;
+  }
+
+  /* Force le word-break sur les gros titres pour éviter l'overflow */
+  h1, h2, h3, h4, h5, h6 {
+    word-break: break-word !important;
+    hyphens: auto;
   }
 }

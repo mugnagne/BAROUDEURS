@@ -12,6 +12,9 @@ interface UserData {
   id: string;
   email: string;
   role: 'reader' | 'author' | 'admin';
+  authorRequest?: boolean;
+  joueurId?: string;
+  pseudo?: string;
 }
 
 interface PostStatsData {
@@ -45,6 +48,9 @@ export const AdminPage = () => {
   const [editJoueurId, setEditJoueurId] = useState<string | null>(null);
   const [editJoueurData, setEditJoueurData] = useState<Partial<Joueur>>({});
 
+  const [editMailingListId, setEditMailingListId] = useState<string | null>(null);
+  const [editMailingListData, setEditMailingListData] = useState<Partial<MailingList>>({});
+
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
       navigate('/');
@@ -60,7 +66,7 @@ export const AdminPage = () => {
     setUsers(fetchedUsers);
 
     // Load posts
-    const fetchedPosts = await getPosts();
+    const fetchedPosts = await getPosts(true);
     setPosts(fetchedPosts);
 
     // Load stats
@@ -88,11 +94,44 @@ export const AdminPage = () => {
 
   const handleRoleChange = async (userId: string, newRole: 'reader' | 'author' | 'admin') => {
     try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole });
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      await updateDoc(doc(db, 'users', userId), { role: newRole, authorRequest: false });
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole, authorRequest: false } : u));
     } catch (e) {
       console.error(e);
       alert('Erreur lors du changement de rôle');
+    }
+  };
+
+  const handleLinkJoueur = async (userId: string, newJoueurId: string) => {
+    try {
+      const joueurIdToSet = newJoueurId || null;
+      let pseudoToSet: string | undefined = undefined;
+      let photoUrlToSet: string | undefined = undefined;
+      
+      const updatesForUser: any = { joueurId: joueurIdToSet };
+
+      if (joueurIdToSet) {
+        const selectedJoueur = joueurs.find(j => j.id === joueurIdToSet);
+        if (selectedJoueur) {
+          pseudoToSet = selectedJoueur.name;
+          photoUrlToSet = selectedJoueur.avatarUrl;
+          if (pseudoToSet) updatesForUser.pseudo = pseudoToSet;
+          if (photoUrlToSet) updatesForUser.photoUrl = photoUrlToSet;
+          
+          const userEmail = users.find(u => u.id === userId)?.email;
+          if (userEmail) {
+            await updateDoc(doc(db, 'joueurs', joueurIdToSet), {
+              email: userEmail
+            });
+          }
+        }
+      }
+
+      await updateDoc(doc(db, 'users', userId), updatesForUser);
+      setUsers(users.map(u => u.id === userId ? { ...u, ...updatesForUser } : u));
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de la liaison du joueur');
     }
   };
 
@@ -211,6 +250,23 @@ export const AdminPage = () => {
     }
   };
 
+  const handleStartEditMailingList = (ml: MailingList) => {
+    setEditMailingListId(ml.id);
+    setEditMailingListData({ name: ml.name, joueurIds: ml.joueurIds });
+  };
+
+  const handleSaveEditMailingList = async () => {
+    if (!editMailingListId || !editMailingListData.name) return;
+    try {
+      await updateDoc(doc(db, 'mailingLists', editMailingListId), editMailingListData as any);
+      setMailingLists(mailingLists.map(ml => ml.id === editMailingListId ? { ...ml, ...editMailingListData } : ml));
+      setEditMailingListId(null);
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de la mise à jour de la liste');
+    }
+  };
+
   const sortedJoueurs = [...joueurs].sort((a, b) => {
     const valA = (a[sortColumn] || '').toLowerCase();
     const valB = (b[sortColumn] || '').toLowerCase();
@@ -263,6 +319,7 @@ export const AdminPage = () => {
             <thead>
               <tr className="border-b-4 border-neo-black">
                 <th className="py-4 px-4 font-black uppercase">Email</th>
+                <th className="py-4 px-4 font-black uppercase">Joueur Lié</th>
                 <th className="py-4 px-4 font-black uppercase">Rôle actuel</th>
                 <th className="py-4 px-4 font-black uppercase text-right">Action</th>
               </tr>
@@ -270,7 +327,24 @@ export const AdminPage = () => {
             <tbody>
               {users.map(u => (
                 <tr key={u.id} className="border-b-2 border-neo-black border-dashed">
-                  <td className="py-4 px-4 font-bold">{u.email}</td>
+                  <td className="py-4 px-4 font-bold">
+                    <div className="flex items-center gap-2">
+                      {u.email}
+                      {u.authorRequest && <span className="bg-neo-yellow text-neo-black px-2 py-1 text-xs font-black uppercase rounded border-2 border-neo-black animate-pulse">Demande Auteur</span>}
+                    </div>
+                  </td>
+                  <td className="py-4 px-4">
+                    <select
+                      value={u.joueurId || ''}
+                      onChange={(e) => handleLinkJoueur(u.id, e.target.value)}
+                      className="border-2 border-neo-black font-bold p-1 cursor-pointer outline-none bg-white min-w-[150px]"
+                    >
+                      <option value="">-- Aucun --</option>
+                      {joueurs.map(j => (
+                        <option key={j.id} value={j.id}>{j.name}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="py-4 px-4">
                     <span className="bg-neo-blue text-white px-2 py-1 text-xs font-bold uppercase rounded border-2 border-neo-black">
                       {u.role}
@@ -452,7 +526,7 @@ export const AdminPage = () => {
             
             <div>
               <label className="block font-bold mb-2">Sélectionnez les Joueurs</label>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 max-h-60 overflow-y-auto w-full p-2 border-2 border-neo-black bg-white">
                 {joueurs.map(j => (
                   <label key={j.id} className={`flex items-center gap-2 p-2 border-2 border-neo-black cursor-pointer ${selectedJoueursForML.includes(j.id) ? 'bg-neo-blue text-white' : 'bg-neo-cream'}`}>
                     <input 
@@ -464,7 +538,7 @@ export const AdminPage = () => {
                         else setSelectedJoueursForML(selectedJoueursForML.filter(id => id !== j.id));
                       }}
                     />
-                    <img src={j.avatarUrl} alt={j.name} className="w-6 h-6 rounded-full border border-neo-black" />
+                    <img src={j.avatarUrl} alt={j.name} className="w-6 h-6 rounded-full border border-neo-black shrink-0 object-cover" />
                     <span className="font-bold text-sm tracking-tight">{j.name}</span>
                   </label>
                 ))}
@@ -485,24 +559,64 @@ export const AdminPage = () => {
             <tbody>
               {mailingLists.map(ml => (
                 <tr key={ml.id} className="border-b-2 border-neo-black border-dashed">
-                  <td className="py-4 px-4 font-bold">{ml.name}</td>
-                  <td className="py-4 px-4">
-                    <div className="flex -space-x-2">
-                       {ml.joueurIds.map(jid => {
-                         const j = joueurs.find(jou => jou.id === jid);
-                         if (!j) return null;
-                         return <img key={jid} src={j.avatarUrl} alt={j.name} title={j.name} className="w-8 h-8 rounded-full border-2 border-neo-black object-cover" />;
-                       })}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    <button 
-                      onClick={() => handleDeleteMailingList(ml.id)}
-                      className={`${confirmDeleteId === ml.id ? 'bg-neo-black text-white px-4' : 'bg-neo-red text-white'} p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold`}
-                    >
-                      {confirmDeleteId === ml.id ? 'Sûr ?' : <Trash2 className="w-5 h-5" />}
-                    </button>
-                  </td>
+                  {editMailingListId === ml.id ? (
+                    <td colSpan={3} className="py-4 px-4">
+                      <div className="flex flex-col gap-4 bg-neo-cream p-4 border-4 border-neo-black">
+                        <input type="text" value={editMailingListData.name || ''} onChange={e => setEditMailingListData({...editMailingListData, name: e.target.value})} className="border-4 border-neo-black p-2 font-bold max-w-md w-full" placeholder="Nom"/>
+                        <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto w-full p-2 border-2 border-neo-black bg-white">
+                          {joueurs.map(j => (
+                            <label key={'edit-'+j.id} className={`flex items-center gap-2 p-2 border-2 border-neo-black cursor-pointer ${editMailingListData.joueurIds?.includes(j.id) ? 'bg-neo-blue text-white' : 'bg-neo-cream'}`}>
+                              <input 
+                                type="checkbox" 
+                                className="hidden"
+                                checked={editMailingListData.joueurIds?.includes(j.id) || false}
+                                onChange={(e) => {
+                                  const currentIds = editMailingListData.joueurIds || [];
+                                  if (e.target.checked) setEditMailingListData({...editMailingListData, joueurIds: [...currentIds, j.id]});
+                                  else setEditMailingListData({...editMailingListData, joueurIds: currentIds.filter(id => id !== j.id)});
+                                }}
+                              />
+                              <img src={j.avatarUrl} alt={j.name} className="w-6 h-6 rounded-full border border-neo-black shrink-0 object-cover" />
+                              <span className="font-bold text-sm tracking-tight">{j.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="primary" onClick={handleSaveEditMailingList} className="p-2 w-auto"><Check className="w-5 h-5"/></Button>
+                          <Button variant="secondary" onClick={() => setEditMailingListId(null)} className="p-2 w-auto"><X className="w-5 h-5"/></Button>
+                        </div>
+                      </div>
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-4 px-4 font-bold">{ml.name}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-wrap gap-2 w-full max-w-sm max-h-32 overflow-y-auto p-1 custom-scrollbar">
+                           {ml.joueurIds.map(jid => {
+                             const j = joueurs.find(jou => jou.id === jid);
+                             if (!j) return null;
+                             return <img key={jid} src={j.avatarUrl} alt={j.name} title={j.name} className="w-8 h-8 rounded-full border-2 border-neo-black object-cover shrink-0" />;
+                           })}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => handleStartEditMailingList(ml)}
+                            className="bg-neo-blue text-white p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteMailingList(ml.id)}
+                            className={`${confirmDeleteId === ml.id ? 'bg-neo-black text-white px-4' : 'bg-neo-red text-white'} p-2 border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold`}
+                          >
+                            {confirmDeleteId === ml.id ? 'Sûr ?' : <Trash2 className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>

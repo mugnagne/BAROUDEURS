@@ -106,7 +106,7 @@ export const PostPage = () => {
             <ArrowLeft strokeWidth={4} /> RETOUR AUX DÉPÊCHES
           </Link>
         </div>
-        {user && user.uid === post.ownerId && (
+        {user && (user.uid === post.ownerId || user.role === 'admin' || user.role === 'author') && (
           <Link to={`/editor/${post.id}`} className="inline-flex items-center gap-2 font-bold uppercase hover:underline decoration-4 underline-offset-4 bg-neo-yellow px-4 py-2 border-4 border-neo-black shadow-neo-sm text-neo-black">
             <Edit2 strokeWidth={4} /> MODIFIER L'ARTICLE
           </Link>
@@ -173,7 +173,9 @@ export const PostPage = () => {
         {isMatchReport && post.matchDetails && (
             <div className="lg:col-span-1 space-y-12">
                <MatchChronology highlights={post.matchDetails.highlights} />
-               <MatchTacticalBoard team1={post.matchDetails.team1} team2={post.matchDetails.team2} highlights={post.matchDetails.highlights} />
+               <div className="hidden md:block">
+                 <MatchTacticalBoard team1={post.matchDetails.team1} team2={post.matchDetails.team2} highlights={post.matchDetails.highlights} />
+               </div>
             </div>
         )}
       </div>

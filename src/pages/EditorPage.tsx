@@ -18,19 +18,36 @@ export const EditorPage = () => {
   const { user } = useAuth();
   const [isMatchReport, setIsMatchReport] = useState(true);
   const [matchDetails, setMatchDetails] = useState<MatchDetails | undefined>();
+  const [postStatus, setPostStatus] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     summary: '',
     content: '',
-    author: '',
     imageUrl: '',
     tags: ''
   });
+  const [customEmailMessage, setCustomEmailMessage] = useState('');
   const [joueurs, setJoueurs] = useState<Joueur[]>([]);
   const [selectedJoueurs, setSelectedJoueurs] = useState<string[]>([]);
   const [mailingLists, setMailingLists] = useState<MailingList[]>([]);
   const [selectedMailingList, setSelectedMailingList] = useState<string>('');
+  const [showMailingListPopup, setShowMailingListPopup] = useState(false);
   const [showHallOfFamePopup, setShowHallOfFamePopup] = useState(false);
+
+  const submitPostRef = useRef<any>(null);
+  
+  useEffect(() => {
+    submitPostRef.current = submitPost;
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (submitPostRef.current) {
+        submitPostRef.current(true, true);
+      }
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!user || !['admin', 'author'].includes(user.role as string)) {
@@ -50,7 +67,7 @@ export const EditorPage = () => {
     if (editId) {
       getPost(editId).then(existingPost => {
         if (existingPost) {
-          if (existingPost.ownerId !== user?.uid) {
+          if (existingPost.ownerId !== user?.uid && user?.role !== 'admin' && user?.role !== 'author') {
             navigate('/blog');
             return;
           }
@@ -58,10 +75,10 @@ export const EditorPage = () => {
               title: existingPost.title || '',
               summary: existingPost.summary || '',
               content: existingPost.content || '',
-              author: existingPost.author || '',
               imageUrl: existingPost.imageUrl || '',
               tags: existingPost.tags?.join(', ') || ''
           });
+          setPostStatus(existingPost.status || 'published');
           setIsMatchReport(!!existingPost.isMatchReport);
           setMatchDetails(existingPost.matchDetails);
           setSelectedJoueurs(existingPost.joueurIds || []);
@@ -93,52 +110,103 @@ export const EditorPage = () => {
     setFormData({ ...formData, content });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const sendEmailNotification = async (postId: string) => {
+    try {
+      let bccEmails: string[] = [];
+      if (selectedMailingList) {
+        const ml = mailingLists.find(m => m.id === selectedMailingList);
+        if (ml) {
+          bccEmails = ml.joueurIds
+              .map(jid => joueurs.find(j => j.id === jid)?.email)
+              .filter(Boolean) as string[];
+        }
+      }
+
+      await fetch('/api/email/notify-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          author: user?.pseudo || user?.displayName || 'ANONYMOUS FAN',
+          customMessage: customEmailMessage,
+          url: 'https://www.baroudeurscup.com/blog/' + postId,
+          bccEmails: bccEmails
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error("Failed to trigger email notification:", err);
+      return false;
+    }
+  };
+
+  const handleResendEmail = async () => {
+    const id = editId || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || `draft-${Date.now()}`;
+    const success = await sendEmailNotification(id);
+    if (success) {
+      alert("L'email a été renvoyé avec succès !");
+    } else {
+      alert("Une erreur est survenue lors de l'envoi de l'email.");
+    }
+  };
+
+  const submitPost = async (isDraft: boolean = false, isAutoSave: boolean = false) => {
     if (!user) return; // Prevent submission if not logged in
 
-    const id = editId || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    // Ignore empty draft save
+    if (!formData.title && isDraft && !editId) return;
+
+    const id = editId || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || `draft-${Date.now()}`;
     
     const postData: any = {
       id,
       title: formData.title,
       summary: formData.summary,
       content: formData.content,
-      author: formData.author || 'ANONYMOUS FAN',
-      ownerId: user.uid,
+      author: user?.pseudo || user?.displayName || 'ANONYMOUS FAN',
       imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1574629810360-7efbb6b49048?q=80&w=2000&auto=format&fit=crop',
-      date: new Date().toISOString(),
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       isMatchReport,
       joueurIds: selectedJoueurs,
-      mailingListId: selectedMailingList
+      mailingListId: selectedMailingList,
+      status: (isDraft && !(isAutoSave && postStatus === 'published')) ? 'draft' : 'published'
     };
 
     if (isMatchReport && matchDetails) {
       postData.matchDetails = matchDetails;
     }
 
-    if (editId) {
-      await updatePost(editId, postData as BlogPost);
+    const isFirstTimePublishing = (!editId && !isDraft) || (editId && postStatus === 'draft' && !isDraft);
+
+    if (editId || (isDraft && editId)) {
+      // For updates, we omit ownerId to prevent breaking immutability rules.
+      await updatePost(id, postData as BlogPost);
     } else {
+      postData.ownerId = user.uid;
+      postData.date = new Date().toISOString();
       await savePost(postData as BlogPost);
-      try {
-        await fetch('/api/email/notify-publish', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: postData.title,
-            author: postData.author,
-            url: window.location.origin + `/blog/${id}`
-          })
-        });
-      } catch (err) {
-        console.error("Failed to trigger email notification:", err);
+      
+      if (isDraft) {
+        navigate(`/editor/${id}`, { replace: true });
       }
     }
+
+    if (isFirstTimePublishing) {
+      await sendEmailNotification(id);
+    }
     
-    navigate(`/blog/${id}`);
+    if (isDraft && !isAutoSave) {
+      alert('Brouillon sauvegardé !');
+    }
+
+    if (!isDraft) {
+      navigate(`/blog/${id}`);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitPost(false);
   };
 
   return (
@@ -183,31 +251,17 @@ export const EditorPage = () => {
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 relative z-10">
-          <div className="flex-1">
-            <label htmlFor="author" className="block text-xl sm:text-2xl font-black uppercase mb-2">Alias / Auteur</label>
-            <input
-              type="text"
-              id="author"
-              name="author"
-              value={formData.author}
-              onChange={handleChange}
-              className="w-full h-14 sm:h-16 px-4 bg-neo-cream border-4 border-neo-black font-bold text-lg sm:text-xl focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all placeholder:text-neo-black/40"
-              placeholder="EX: OEIL D'AIGLE"
-            />
-          </div>
-          <div className="flex-1">
-            <label htmlFor="tags" className="block text-xl sm:text-2xl font-black uppercase mb-2">Tags</label>
-            <input
-              type="text"
-              id="tags"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              className="w-full h-14 sm:h-16 px-4 bg-neo-cream border-4 border-neo-black font-bold text-lg sm:text-xl focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all placeholder:text-neo-black/40"
-              placeholder="USA, TACTIQUE..."
-            />
-          </div>
+        <div className="relative z-10 w-full mb-6">
+          <label htmlFor="tags" className="block text-xl sm:text-2xl font-black uppercase mb-2">Tags</label>
+          <input
+            type="text"
+            id="tags"
+            name="tags"
+            value={formData.tags}
+            onChange={handleChange}
+            className="w-full h-14 sm:h-16 px-4 bg-neo-cream border-4 border-neo-black font-bold text-lg sm:text-xl focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all placeholder:text-neo-black/40"
+            placeholder="USA, TACTIQUE..."
+          />
         </div>
 
         <div className="relative z-10 flex items-center gap-4 py-4">
@@ -317,17 +371,106 @@ export const EditorPage = () => {
         <div className="relative z-10 pb-8">
           <label className="block text-xl sm:text-2xl font-black uppercase mb-4 pl-4 pt-4">Mail List de diffusion</label>
           <div className="px-4">
-            <select
-              value={selectedMailingList}
-              onChange={(e) => setSelectedMailingList(e.target.value)}
-              className="w-full h-14 sm:h-16 px-4 bg-neo-cream border-4 border-neo-black font-bold text-lg sm:text-xl focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all cursor-pointer"
-            >
-              <option value="">-- Ne pas envoyer par mail --</option>
-              {mailingLists.map(ml => (
-                <option key={ml.id} value={ml.id}>{ml.name}</option>
-              ))}
-            </select>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={selectedMailingList}
+                onChange={(e) => setSelectedMailingList(e.target.value)}
+                className="flex-1 w-full h-14 sm:h-16 px-4 bg-neo-cream border-4 border-neo-black font-bold text-lg sm:text-xl focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all cursor-pointer"
+              >
+                <option value="">-- Ne pas envoyer par mail --</option>
+                {mailingLists.map(ml => (
+                  <option key={ml.id} value={ml.id}>{ml.name}</option>
+                ))}
+              </select>
+              {selectedMailingList && (
+                <Button 
+                  type="button" 
+                  onClick={() => setShowMailingListPopup(true)}
+                  className="h-14 sm:h-16 whitespace-nowrap bg-neo-cream"
+                >
+                  Voir la liste
+                </Button>
+              )}
+            </div>
           </div>
+          
+          {showMailingListPopup && selectedMailingList && createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 overflow-y-auto w-full h-full">
+              <div className="bg-white border-4 border-neo-black shadow-neo-brutal p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative">
+                <button
+                  type="button"
+                  onClick={() => setShowMailingListPopup(false)}
+                  className="absolute top-4 right-4 p-2 bg-neo-red text-white border-2 border-neo-black shadow-neo-sm hover:translate-y-1 hover:shadow-none transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <h2 className="text-2xl font-black uppercase mb-4">
+                  Membres de la liste
+                </h2>
+                <div className="space-y-2">
+                  {mailingLists.find(ml => ml.id === selectedMailingList)?.joueurIds.map(jid => {
+                    const j = joueurs.find(joueur => joueur.id === jid);
+                    return j ? (
+                      <div key={jid} className="p-3 border-2 border-neo-black bg-neo-cream flex justify-between items-center break-all">
+                        <span className="font-bold mr-2">{j.name}</span>
+                        <span className="text-sm text-gray-600">{j.email || 'Aucun email'}</span>
+                      </div>
+                    ) : null;
+                  })}
+                  {mailingLists.find(ml => ml.id === selectedMailingList)?.joueurIds.length === 0 && (
+                    <div className="p-3 border-2 border-neo-black bg-neo-cream text-center font-bold">
+                      Aucun membre dans cette liste
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+          
+          {selectedMailingList && (
+            <div className="mt-6 px-4">
+              <label className="block text-lg font-black uppercase mb-2">Message d'accroche personnalisé (Optionnel)</label>
+              <textarea
+                value={customEmailMessage}
+                onChange={(e) => setCustomEmailMessage(e.target.value)}
+                className="w-full p-4 bg-neo-cream border-4 border-neo-black font-bold text-sm sm:text-base focus-visible:bg-neo-blue focus-visible:text-white focus-visible:shadow-neo-sm focus-visible:outline-none transition-all placeholder:text-neo-black/40 min-h-[100px] mb-4"
+                placeholder="Un petit mot personnalisé pour vos lecteurs..."
+              />
+              
+              <div className="p-4 bg-white border-4 border-neo-black mt-2">
+                <h4 className="font-black uppercase mb-4 text-sm text-neo-black/60">Prévisualisation de l'email :</h4>
+                <div className="border-4 border-black p-4 md:p-8 font-sans text-black bg-[#FFFDF5] flex justify-center">
+                  <div className="max-w-[600px] w-full bg-white border-4 border-black p-4 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-center">
+                    <div className="bg-[#0A3161] p-4 border-4 border-black mb-4 text-white uppercase">
+                      <h1 className="m-0 text-xl md:text-2xl font-black tracking-tighter">★ NOUVEL ARTICLE ★</h1>
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase mb-3 border-b-4 border-black pb-3 break-words">{formData.title || "[TITRE DE L'ARTICLE]"}</h2>
+                    <p className="text-base font-bold bg-[#FFD600] inline-block px-3 py-1 border-2 border-black mb-6 uppercase">
+                      PAR {user?.pseudo || user?.displayName || 'ANONYMOUS FAN'}
+                    </p>
+                    
+                    {customEmailMessage && (
+                      <div 
+                        className="text-left bg-[#FFFDF5] border-2 border-dashed border-black p-4 text-base mb-6 font-bold" 
+                        dangerouslySetInnerHTML={{ __html: customEmailMessage.replace(/\n/g, '<br>') }} 
+                      />
+                    )}
+                    
+                    <div className="mt-6">
+                      <span className="bg-[#E6192B] text-white px-6 py-3 no-underline font-black text-base md:text-lg uppercase border-4 border-black inline-block shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        LIRE L'ARTICLE
+                      </span>
+                    </div>
+                    
+                    <div className="mt-8 border-t-4 border-black pt-4 text-xs font-bold uppercase">
+                      BAROUDEUR WORLD CUP
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="relative z-10 group focus-within:shadow-neo-sm focus-within:border-neo-blue pb-8 text-neo-black">
@@ -341,11 +484,35 @@ export const EditorPage = () => {
           </div>
         </div>
 
-        <div className="pt-6 sm:pt-8 border-t-4 border-neo-black relative z-10">
-          <Button type="submit" size="lg" variant="primary" className="w-full text-xl sm:text-2xl h-16 sm:h-20 shadow-neo-md">
-            {editId ? "SAUVEGARDER LES MODIFICATIONS" : "PUBLIER LA DÉPÊCHE"}
+        <div className="pt-6 sm:pt-8 border-t-4 border-neo-black relative z-10 flex flex-col sm:flex-row gap-4">
+          <Button 
+            type="button" 
+            onClick={() => submitPostRef.current && submitPostRef.current(true)} 
+            size="lg" 
+            className="w-full sm:w-1/3 text-[14px] sm:text-lg h-16 sm:h-20 shadow-neo-md bg-neo-yellow text-neo-black border-4 border-neo-black hover:bg-yellow-400 font-black uppercase"
+          >
+            ENREGISTRER EN BROUILLON
+          </Button>
+          <Button 
+            type="submit" 
+            size="lg" 
+            variant="primary" 
+            className="w-full sm:w-2/3 text-[14px] sm:text-xl md:text-2xl h-16 sm:h-20 shadow-neo-md"
+          >
+            {editId ? "SAUVEGARDER ET PUBLIER" : "PUBLIER LA DÉPÊCHE"}
           </Button>
         </div>
+        {postStatus === 'published' && editId && (
+          <div className="mt-4 flex justify-end">
+            <Button
+              type="button"
+              onClick={handleResendEmail}
+              className="bg-white text-neo-black border-4 border-neo-black font-black hover:bg-gray-100 uppercase"
+            >
+              RÉENVOYER LE MAIL À LA LISTE
+            </Button>
+          </div>
+        )}
       </form>
     </div>
   );

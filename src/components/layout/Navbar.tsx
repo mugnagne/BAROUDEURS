@@ -12,7 +12,7 @@ export const Navbar = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const location = useLocation();
-  const { user, logOut } = useAuth();
+  const { user } = useAuth();
 
   const mainLinks = [
     { name: 'Accueil', path: '/' },
@@ -105,10 +105,12 @@ export const Navbar = () => {
 
                 {user ? (
                   <div className="flex items-center gap-4">
-                     <button onClick={() => setIsProfileModalOpen(true)} className="font-bold uppercase tracking-wider hover:text-neo-red text-sm">
-                        Profil ({user.pseudo || 'User'})
+                     <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-2 font-bold uppercase tracking-wider hover:text-neo-red text-sm bg-neo-cream border-2 border-neo-black px-3 py-1 shadow-neo-sm">
+                        {user.photoUrl && (
+                          <img src={user.photoUrl} alt="Avatar" className="w-8 h-8 rounded-full border-2 border-neo-black object-cover bg-white" />
+                        )}
+                        <span>{user.pseudo || 'Profil'}</span>
                      </button>
-                     <Button onClick={logOut} variant="secondary" size="sm">Déconnexion</Button>
                   </div>
                 ) : (
                   <Button onClick={() => setIsAuthModalOpen(true)} variant="primary" size="sm">Connexion</Button>
@@ -143,10 +145,12 @@ export const Navbar = () => {
               <div className="pt-4 border-t-4 border-neo-black flex flex-col gap-4">
                  {user ? (
                     <>
-                       <button onClick={() => { setIsProfileModalOpen(true); setIsOpen(false); }} className="font-bold uppercase tracking-wider text-center w-full py-2 hover:text-neo-red border-4 border-transparent">
-                          Profil ({user.pseudo || 'User'})
+                       <button onClick={() => { setIsProfileModalOpen(true); setIsOpen(false); }} className="flex justify-center items-center gap-2 font-bold uppercase tracking-wider text-center w-full py-2 hover:text-neo-red border-4 border-neo-black bg-neo-cream shadow-neo-sm">
+                          {user.photoUrl && (
+                            <img src={user.photoUrl} alt="Avatar" className="w-8 h-8 rounded-full border-2 border-neo-black object-cover bg-white" />
+                          )}
+                          <span>{user.pseudo || 'Profil'}</span>
                        </button>
-                       <Button onClick={() => { logOut(); setIsOpen(false); }} variant="secondary" className="w-full text-center flex justify-center">Déconnexion</Button>
                     </>
                  ) : (
                     <Button onClick={() => { setIsAuthModalOpen(true); setIsOpen(false); }} variant="primary" className="w-full text-center flex justify-center">Connexion</Button>

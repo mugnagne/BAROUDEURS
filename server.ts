@@ -30,18 +30,36 @@ async function startServer() {
         },
       });
       
-      // In a real app, you would fetch subscriber emails from your database.
-      // Here we send a notification to the admin.
       await transporter.sendMail({
         from: `"Baroudeur World Cup" <${smtpUser}>`,
-        to: "cam.drean35@gmail.com", // Send notification to admin
+        to: "cam.drean35@gmail.com", // Send to admin as primary recipient
+        bcc: req.body.bccEmails, // Blind Carbon Copy to the entire mailing list to protect email privacy
         subject: `Nouvel article publié : ${title}`,
         html: `
-          <div style="font-family: sans-serif; p: 20px;">
-            <h1 style="text-transform: uppercase;">Un nouvel article est en ligne !</h1>
-            <h2>${title}</h2>
-            <p><strong>Auteur :</strong> ${author}</p>
-            <p><a href="${url}" style="background: #2563EB; color: white; padding: 10px 20px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 20px;">LIRE L'ARTICLE</a></p>
+          <div style="font-family: 'Space Grotesk', sans-serif; background-color: #FFFDF5; color: #000000; padding: 40px; text-align: center;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border: 4px solid #000000; padding: 40px; box-shadow: 8px 8px 0px 0px #000000;">
+              
+              <div style="background-color: #0A3161; padding: 20px; border: 4px solid #000000; margin-bottom: 20px; color: #FFFFFF; text-transform: uppercase;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -1px;">★ NOUVEL ARTICLE ★</h1>
+              </div>
+
+              <h2 style="font-size: 28px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; border-bottom: 4px solid #000000; padding-bottom: 15px;">${title}</h2>
+              <p style="font-size: 16px; font-weight: bold; background-color: #FFD600; display: inline-block; padding: 5px 10px; border: 2px solid #000000; margin-bottom: 20px;">
+                PAR ${author}
+              </p>
+              
+              ${req.body.customMessage ? `<div style="text-align: left; background-color: #FFFDF5; border: 2px dashed #000000; padding: 20px; font-size: 16px; margin-bottom: 30px; font-weight: bold;">${req.body.customMessage.replace(/\n/g, '<br>')}</div>` : ''}
+              
+              <div style="margin-top: 30px;">
+                <a href="${url}" style="background-color: #E6192B; color: #FFFFFF; padding: 15px 30px; text-decoration: none; font-weight: 900; font-size: 18px; text-transform: uppercase; border: 4px solid #000000; display: inline-block; box-shadow: 4px 4px 0px 0px #000000;">
+                  LIRE L'ARTICLE
+                </a>
+              </div>
+              
+              <div style="margin-top: 40px; border-top: 4px solid #000000; padding-top: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase;">
+                BAROUDEUR WORLD CUP
+              </div>
+            </div>
           </div>
         `
       });
@@ -53,7 +71,7 @@ async function startServer() {
     }
   });
 
-  // API route to get matches for WC 2022
+  // API route to get matches for WC 2026
   app.get("/api/football/fixtures", async (req, res) => {
     try {
       const apiKey = process.env.FOOTBALL_API_KEY;
@@ -61,8 +79,8 @@ async function startServer() {
         return res.status(500).json({ error: "FOOTBALL_API_KEY is not defined" });
       }
 
-      // League 1 is World Cup, Season 2022
-      const response = await fetch("https://v3.football.api-sports.io/fixtures?league=1&season=2022", {
+      // League 1 is World Cup, Season 2026
+      const response = await fetch("https://v3.football.api-sports.io/fixtures?league=1&season=2026", {
         headers: {
           "x-apisports-key": apiKey
         }
@@ -117,7 +135,7 @@ async function startServer() {
       }
       const teamId = req.params.id;
       // We can get form from team statistics but it needs league and season
-      const response = await fetch(`https://v3.football.api-sports.io/teams/statistics?league=1&season=2022&team=${teamId}`, {
+      const response = await fetch(`https://v3.football.api-sports.io/teams/statistics?league=1&season=2026&team=${teamId}`, {
          headers: {
           "x-apisports-key": apiKey
         }

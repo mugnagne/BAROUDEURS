@@ -35,15 +35,21 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 export const initialPosts = []; // Can be removed later if not used in components currently
 
-export const getPosts = async (): Promise<BlogPost[]> => {
+export const getPosts = async (includeDrafts = false): Promise<BlogPost[]> => {
   const pathForGetDocs = 'posts';
   try {
     const q = query(collection(db, pathForGetDocs), orderBy('date', 'desc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
+    let posts = querySnapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id
     })) as BlogPost[];
+    
+    if (!includeDrafts) {
+      posts = posts.filter(post => post.status !== 'draft');
+    }
+    
+    return posts;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, pathForGetDocs);
     return [];

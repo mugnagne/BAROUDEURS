@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getPosts } from '@/data/mockPosts';
 import { ArticleCard } from '@/components/ui/ArticleCard';
 import { Button } from '@/components/ui/Button';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Star, X } from 'lucide-react';
 import { BlogPost } from '@/types';
+import { useAuth } from '@/lib/auth';
+import { AuthModal } from '@/components/features/AuthModal';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export const LandingPage = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAuthorRequestModalOpen, setIsAuthorRequestModalOpen] = useState(false);
+  const [requestSending, setRequestSending] = useState(false);
 
   useEffect(() => {
     getPosts().then(fetched => {
@@ -16,6 +25,31 @@ export const LandingPage = () => {
       console.error("Failed to load posts", error);
     });
   }, []);
+
+  const handleWriteArticleClick = () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+    } else if (user.role === 'admin' || user.role === 'author') {
+      navigate('/editor');
+    } else {
+      setIsAuthorRequestModalOpen(true);
+    }
+  };
+
+  const handleRequestAuthor = async () => {
+    if (!user) return;
+    setRequestSending(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { authorRequest: true });
+      alert('Ta demande a bien été envoyée ! Un administrateur va la valider.');
+      setIsAuthorRequestModalOpen(false);
+    } catch (error) {
+      console.error("Failed to request author", error);
+      alert('Erreur lors de l\'envoi de la demande.');
+    } finally {
+      setRequestSending(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-24 overflow-hidden w-full">
@@ -105,13 +139,42 @@ export const LandingPage = () => {
             <h2 className="relative z-10 text-4xl sm:text-6xl md:text-8xl font-black uppercase text-stroke-white-2 drop-shadow-[4px_4px_0px_#000] sm:drop-shadow-[8px_8px_0px_#000] mb-8">
               WE NEED YOU
             </h2>
-            <Link to="/editor" className="relative z-10 w-full md:w-auto inline-block">
-              <Button size="lg" variant="primary" className="rotate-2 text-xl sm:text-2xl shadow-neo-md border-white w-full sm:w-auto px-4 sm:px-8">
+            <div className="relative z-10 w-full md:w-auto inline-block">
+              <Button onClick={handleWriteArticleClick} size="lg" variant="primary" className="rotate-2 text-xl sm:text-2xl shadow-neo-md border-white w-full sm:w-auto px-4 sm:px-8">
                 DONNE TON AVIS - ÉCRIS UN ARTICLE
               </Button>
-            </Link>
+            </div>
         </div>
       </section>
+
+      {isAuthModalOpen && (
+        <AuthModal onClose={() => setIsAuthModalOpen(false)} />
+      )}
+
+      {isAuthorRequestModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-neo-cream border-8 border-neo-black p-6 md:p-8 max-w-lg w-full shadow-neo-xl rotate-1 relative">
+            <button 
+              onClick={() => setIsAuthorRequestModalOpen(false)}
+              className="absolute top-2 right-2 p-2 bg-neo-red text-white border-2 border-neo-black shadow-neo-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+            >
+              <X className="w-5 h-5" strokeWidth={3} />
+            </button>
+            <h2 className="text-3xl font-black uppercase text-neo-blue mb-4 leading-tight">Envie d'écrire ?</h2>
+            <p className="text-lg font-bold text-neo-black leading-snug mb-8">
+              Tu veux écrire des articles pour le blog officiel de la Baroudeurs League ? Fais ta demande pour devenir auteur !
+            </p>
+            <Button
+              onClick={handleRequestAuthor}
+              disabled={requestSending}
+              className="w-full text-xl"
+              size="lg"
+            >
+              {requestSending ? 'Envoi...' : 'DEVENIR AUTEUR'}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

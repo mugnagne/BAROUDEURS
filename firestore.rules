@@ -51,7 +51,7 @@ service cloud.firestore {
         && data.content is string && data.content.size() <= 50000
         && data.date is string && data.date.size() <= 50
         && data.author is string && data.author.size() <= 100
-        && data.ownerId == request.auth.uid // Identity Integrity
+        && data.ownerId is string // Identity Integrity is checked in create
         && (
           !('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 5000000)
         )
@@ -86,7 +86,9 @@ service cloud.firestore {
         && data.email is string && data.email.size() <= 200
         && data.role in ['reader', 'author', 'admin']
         && (!('pseudo' in data) || (data.pseudo is string && data.pseudo.size() <= 100))
-        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 6000000));
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 6000000))
+        && (!('joueurId' in data) || data.joueurId == null || data.joueurId is string)
+        && (!('authorRequest' in data) || (data.authorRequest is bool));
     }
 
     function isValidComment(data) {
@@ -109,13 +111,13 @@ service cloud.firestore {
                     && isAuthorOrAdmin()
                     && isValidId(postId)
                     && isValidPost(incoming())
+                    && incoming().ownerId == request.auth.uid
                     && incoming().keys().size() <= 16;
 
       allow update: if isSignedIn()
                     && isAuthorOrAdmin()
                     && isValidId(postId)
                     && isValidPost(incoming())
-                    && isOwner()
                     && incoming().ownerId == existing().ownerId; // Immutability of ownerId
 
       allow delete: if isSignedIn()
@@ -127,7 +129,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
       allow update: if isSignedIn() && isValidUser(incoming()) && (
         isAdmin() || 
-        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['pseudo', 'photoUrl']))
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['pseudo', 'photoUrl', 'joueurId', 'authorRequest']))
       );
       allow delete: if isAdmin();
     }
@@ -149,7 +151,8 @@ service cloud.firestore {
     }
     match /joueurs/{jid} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'name', 'avatarUrl']));
     }
     match /mailingLists/{mid} {
       allow read: if true;

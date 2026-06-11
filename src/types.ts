@@ -59,4 +59,5 @@ export interface BlogPost {
   updatedAt?: number;
   joueurIds?: string[];
   mailingListId?: string;
+  status?: 'published' | 'draft';
 }

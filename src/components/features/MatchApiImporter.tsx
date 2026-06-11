@@ -232,7 +232,7 @@ export const MatchApiImporter = ({ onImport }: MatchApiImporterProps) => {
         </Button>
       ) : (
         <div className="flex flex-col gap-4">
-          <h4 className="font-black uppercase">Sélectionner un match (WC 2022)</h4>
+          <h4 className="font-black uppercase">Sélectionner un match (WC 2026)</h4>
           {loading ? (
              <div className="flex items-center gap-2 text-gray-500 font-bold uppercase"><Loader2 className="animate-spin" /> Chargement...</div>
           ) : (

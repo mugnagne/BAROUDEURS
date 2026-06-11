@@ -8,7 +8,7 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateUserProfile, logOut } = useAuth();
   const [pseudo, setPseudo] = useState(user?.pseudo || '');
   const [photoUrl, setPhotoUrl] = useState(user?.photoUrl || '');
   const [error, setError] = useState('');
@@ -115,6 +115,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           
           <Button type="submit" variant="primary" className="w-full shadow-neo-sm" disabled={loading}>
             {loading ? 'SAUVEGARDE...' : 'SAUVEGARDER'}
+          </Button>
+
+          <Button 
+            type="button" 
+            variant="secondary" 
+            className="w-full shadow-neo-sm mt-4 text-neo-black border-neo-black bg-neo-yellow hover:bg-neo-red hover:text-white"
+            onClick={() => {
+              logOut();
+              onClose();
+            }}
+          >
+            DÉCONNEXION
           </Button>
         </form>
       </div>
