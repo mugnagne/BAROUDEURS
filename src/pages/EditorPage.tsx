@@ -8,7 +8,7 @@ import { MatchDetails, BlogPost, Joueur, MailingList } from '@/types';
 import { useAuth } from '@/lib/auth';
 import { convertImageToBase64 } from '@/lib/imageUtils';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { X, Trophy, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -122,7 +122,7 @@ export const EditorPage = () => {
         }
       }
 
-      await fetch('/api/email/notify-publish', {
+      const res = await fetch('/api/email/notify-publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,6 +133,21 @@ export const EditorPage = () => {
           bccEmails: bccEmails
         })
       });
+      const result = await res.json();
+      
+      try {
+        await addDoc(collection(db, 'emailHistory'), {
+          postId,
+          title: formData.title,
+          sentAt: new Date().toISOString(),
+          recipientCount: bccEmails.length,
+          recipients: bccEmails,
+          status: result.status || 'unknown'
+        });
+      } catch (logErr) {
+        console.error("Failed to log email to Firestore:", logErr);
+      }
+      
       return true;
     } catch (err) {
       console.error("Failed to trigger email notification:", err);

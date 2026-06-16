@@ -33,7 +33,8 @@ export const AdminPage = () => {
   const [stats, setStats] = useState<Record<string, PostStatsData>>({});
   const [joueurs, setJoueurs] = useState<Joueur[]>([]);
   const [mailingLists, setMailingLists] = useState<MailingList[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'joueurs' | 'mailingLists'>('users');
+  const [emailHistory, setEmailHistory] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'joueurs' | 'mailingLists' | 'emails'>('users');
   const [newJoueurName, setNewJoueurName] = useState('');
   const [newJoueurImg, setNewJoueurImg] = useState('');
   const [newJoueurEmail, setNewJoueurEmail] = useState('');
@@ -86,6 +87,11 @@ export const AdminPage = () => {
     const mlSnap = await getDocs(collection(db, 'mailingLists'));
     const fetchedML = mlSnap.docs.map(d => ({ id: d.id, ...d.data() } as MailingList));
     setMailingLists(fetchedML);
+
+    // Load email history
+    const emailRef = await getDocs(collection(db, 'emailHistory'));
+    const history = emailRef.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+    setEmailHistory(history);
   };
 
   useEffect(() => {
@@ -310,6 +316,12 @@ export const AdminPage = () => {
           onClick={() => setActiveTab('mailingLists')}
         >
           <Mail className="mr-2 h-5 w-5" /> Mail Lists
+        </Button>
+        <Button 
+          variant={activeTab === 'emails' ? 'primary' : 'secondary'} 
+          onClick={() => setActiveTab('emails')}
+        >
+          <Mail className="mr-2 h-5 w-5" /> Emails (Histo)
         </Button>
       </div>
 
@@ -619,6 +631,48 @@ export const AdminPage = () => {
                   )}
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'emails' && (
+        <div className="bg-white border-4 border-neo-black shadow-neo-lg p-6 relative">
+          <h2 className="text-2xl font-black uppercase mb-4 tracking-tighter">Historique des emails</h2>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b-4 border-neo-black bg-neo-beige">
+                <th className="py-4 px-4 font-black uppercase">Date</th>
+                <th className="py-4 px-4 font-black uppercase">Article</th>
+                <th className="py-4 px-4 font-black uppercase">Destinataires</th>
+                <th className="py-4 px-4 font-black uppercase">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {emailHistory.map(email => (
+                <tr key={email.id} className="border-b-4 border-neo-black hover:bg-neo-cream/50 transition-colors">
+                  <td className="py-4 px-4 font-bold">{new Date(email.sentAt).toLocaleString()}</td>
+                  <td className="py-4 px-4 font-bold">{email.title}</td>
+                  <td className="py-4 px-4">
+                    <span className="font-bold">{email.recipientCount} destinataires</span>
+                    <div className="text-xs mt-1 max-h-24 overflow-y-auto w-full max-w-[250px]">
+                      {(email.recipients || []).join(', ')}
+                    </div>
+                  </td>
+                  <td className="py-4 px-4">
+                    {email.status === 'ok' ? (
+                      <span className="bg-neo-yellow px-2 py-1 border-2 border-neo-black font-black uppercase text-xs">OK</span>
+                    ) : (
+                      <span className="bg-neo-red text-white px-2 py-1 border-2 border-neo-black font-black uppercase text-xs">{email.status}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {emailHistory.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center font-bold">Aucun historique trouvé.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

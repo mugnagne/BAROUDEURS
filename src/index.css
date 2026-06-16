@@ -22,7 +22,7 @@
 
   /* Fix for invisible caret on Windows in inputs & rich text editors */
   input, textarea, [contenteditable] {
-    caret-color: var(--color-neo-black) !important;
+    caret-color: #000000 !important;
   }
 
   h1, h2, h3, h4, h5, h6 {

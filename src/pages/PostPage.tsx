@@ -182,9 +182,10 @@ export const PostPage = () => {
 
       {joueurs.length > 0 && (
         <div className="mb-24 bg-neo-blue text-white border-8 border-neo-cream p-8 shadow-neo-lg rotate-[0.5deg]">
-          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-8 text-neo-yellow">
-            Les Joueurs
+          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-2 text-neo-yellow">
+            Hall of Fame
           </h2>
+          <p className="font-bold text-xl mb-8">Ils ont pronostiqué le score exact</p>
           <div className="flex flex-wrap gap-6">
             {joueurs.map(v => (
               <div key={v.id} className="flex flex-col items-center gap-3 w-32 pb-4 bg-white border-4 border-neo-white text-neo-black hover:-translate-y-2 transition-transform cursor-crosshair">

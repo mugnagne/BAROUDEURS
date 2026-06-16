@@ -76,7 +76,11 @@ export const MatchScoreHeader = ({ details }: { details: MatchDetails }) => {
         
         {/* TEAM 1 */}
         <div className="flex flex-col items-center flex-1 z-10 w-full sm:w-auto">
-            <span className="text-6xl mb-2 drop-shadow-md">{details.team1.flagUrl}</span>
+            {details.team1.flagUrl.startsWith('http') ? (
+               <img src={details.team1.flagUrl} alt="crest" className="h-16 w-16 mb-2 drop-shadow-md object-contain" />
+            ) : (
+               <span className="text-6xl mb-2 drop-shadow-md">{details.team1.flagUrl}</span>
+            )}
             <h1 className="text-3xl md:text-5xl font-black uppercase text-white bg-[#e6192b] px-3 py-1 border-4 border-neo-black shadow-[4px_4px_0px_#000] -rotate-2">{details.team1.name}</h1>
             <div className="flex gap-1 mt-4">
                 {details.team1.form.split('-').map((res, i) => (
@@ -95,7 +99,11 @@ export const MatchScoreHeader = ({ details }: { details: MatchDetails }) => {
 
         {/* TEAM 2 */}
         <div className="flex flex-col items-center flex-1 z-10 w-full sm:w-auto">
-            <span className="text-6xl mb-2 drop-shadow-md">{details.team2.flagUrl}</span>
+            {details.team2.flagUrl.startsWith('http') ? (
+               <img src={details.team2.flagUrl} alt="crest" className="h-16 w-16 mb-2 drop-shadow-md object-contain" />
+            ) : (
+               <span className="text-6xl mb-2 drop-shadow-md">{details.team2.flagUrl}</span>
+            )}
             <h1 className="text-3xl md:text-5xl font-black uppercase text-white bg-[#e6192b] px-3 py-1 border-4 border-neo-black shadow-[4px_4px_0px_#000] rotate-2">{details.team2.name}</h1>
             <div className="flex gap-1 mt-4">
                 {details.team2.form.split('-').map((res, i) => (
@@ -110,6 +118,9 @@ export const MatchScoreHeader = ({ details }: { details: MatchDetails }) => {
 };
 
 export const MatchTacticalBoard = ({ team1, team2, highlights }: { team1: TeamDetails, team2: TeamDetails, highlights: MatchHighlight[] }) => {
+    if (!team1.lineup?.length && !team2.lineup?.length) {
+        return null; // Do not show anything if no lineup details
+    }
     return (
         <div className="bg-white border-4 border-neo-black p-6 shadow-neo-lg -rotate-1 relative flex flex-col gap-4 mt-4">
             <h3 className="absolute -top-5 left-4 bg-neo-red text-white px-4 py-1 border-4 border-neo-black font-black uppercase shadow-[4px_4px_0px_#000] transform -rotate-2 z-20">
@@ -129,6 +140,9 @@ export const MatchTacticalBoard = ({ team1, team2, highlights }: { team1: TeamDe
 };
 
 export const MatchChronology = ({ highlights }: { highlights: MatchHighlight[] }) => {
+    if (!highlights || highlights.length === 0) {
+        return null; // Do not show anything if no highlights
+    }
     return (
         <div className="bg-white text-neo-black border-4 border-neo-black p-6 shadow-neo-lg rotate-1 relative mt-8">
           <h3 className="absolute -top-5 right-4 bg-[#e6192b] px-4 py-1 border-4 border-neo-black font-black uppercase shadow-neo-sm transform rotate-2 text-white z-20">

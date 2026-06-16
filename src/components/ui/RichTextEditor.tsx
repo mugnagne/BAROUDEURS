@@ -237,6 +237,7 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
 
   const handleAddImage = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (imageUrl && editor) {
       editor.chain().focus().setImage({ src: imageUrl }).run();
       setImageUrl('');
@@ -246,11 +247,16 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
 
   const handleAddLink = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (editor) {
       if (linkUrl === '') {
         editor.chain().focus().extendMarkRange('link').unsetLink().run();
       } else {
-        editor.chain().focus().extendMarkRange('link').setLink({ href: linkUrl }).run();
+        let finalUrl = linkUrl;
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+          finalUrl = 'https://' + finalUrl;
+        }
+        editor.chain().focus().extendMarkRange('link').setLink({ href: finalUrl }).run();
       }
       setLinkUrl('');
       setModalState(null);
@@ -259,6 +265,7 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
 
   const handleAddEmbed = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (embedHtml && editor) {
       editor.chain().focus().setHtmlEmbed({ htmlContent: embedHtml }).run();
       setEmbedHtml('');
@@ -299,47 +306,49 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
             <div className="flex-grow border-t-4 border-neo-black"></div>
           </div>
 
-          <form onSubmit={handleAddImage} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
             <input
               type="url"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !!imageUrl && handleAddImage(e as unknown as React.FormEvent)}
               placeholder="Colle une URL d'image ici..."
               className="w-full h-14 px-4 bg-white border-4 border-neo-black font-bold focus-visible:bg-neo-blue focus-visible:text-white focus-visible:outline-none transition-colors"
             />
-            <Button type="submit" variant="secondary" className="w-full h-12" disabled={!imageUrl}>VALIDER L'URL</Button>
-          </form>
+            <Button type="button" onClick={handleAddImage as any} variant="secondary" className="w-full h-12" disabled={!imageUrl}>VALIDER L'URL</Button>
+          </div>
         </div>
       </EditorModal>
 
       <EditorModal isOpen={modalState === 'link'} onClose={() => setModalState(null)} title="Ajouter un lien">
-        <form onSubmit={handleAddLink} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <input
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !!linkUrl && handleAddLink(e as unknown as React.FormEvent)}
             placeholder="https://..."
             className="w-full h-14 px-4 bg-white border-4 border-neo-black font-bold focus-visible:bg-neo-blue focus-visible:text-white focus-visible:outline-none transition-colors"
           />
           <div className="flex gap-4">
-            <Button type="button" variant="secondary" onClick={() => { setLinkUrl(''); handleAddLink({ preventDefault: () => {} } as React.FormEvent); }} className="flex-1 h-12 bg-white text-neo-black hover:bg-neo-red hover:text-white">
+            <Button type="button" variant="secondary" onClick={(e) => { setLinkUrl(''); handleAddLink(e as any); }} className="flex-1 h-12 bg-white text-neo-black hover:bg-neo-red hover:text-white">
               SANS LIEN
             </Button>
-            <Button type="submit" variant="primary" className="flex-1 h-12" disabled={!linkUrl}>VALIDER</Button>
+            <Button type="button" onClick={handleAddLink as any} variant="primary" className="flex-1 h-12" disabled={!linkUrl}>VALIDER</Button>
           </div>
-        </form>
+        </div>
       </EditorModal>
 
       <EditorModal isOpen={modalState === 'embed'} onClose={() => setModalState(null)} title="Intégrer du code (HTML/Embed)">
-        <form onSubmit={handleAddEmbed} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <textarea
             value={embedHtml}
             onChange={(e) => setEmbedHtml(e.target.value)}
             placeholder="<iframe src='...' ></iframe>"
             className="w-full h-40 p-4 bg-neo-black text-neo-blue font-mono text-sm font-bold border-4 border-neo-black focus-visible:bg-neo-black focus-visible:text-white focus-visible:outline-none transition-colors resize-none"
           />
-          <Button type="submit" variant="primary" className="w-full h-12" disabled={!embedHtml}>INTÉGRER</Button>
-        </form>
+          <Button type="button" onClick={handleAddEmbed as any} variant="primary" className="w-full h-12" disabled={!embedHtml}>INTÉGRER</Button>
+        </div>
       </EditorModal>
     </div>
   );

@@ -78,6 +78,9 @@ service cloud.firestore {
         )
         && (
           !('mailingListId' in data) || data.mailingListId is string
+        )
+        && (
+          !('status' in data) || data.status is string
         );
     }
 
@@ -157,6 +160,11 @@ service cloud.firestore {
     match /mailingLists/{mid} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+    match /emailHistory/{eid} {
+      allow read: if isAuthorOrAdmin();
+      allow write: if isAuthorOrAdmin();
+      allow create: if isAuthorOrAdmin();
     }
     match /calendarMatches/{matchId} {
       allow read: if isAuthorOrAdmin();

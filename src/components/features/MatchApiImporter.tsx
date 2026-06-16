@@ -125,11 +125,11 @@ export const MatchApiImporter = ({ onImport }: MatchApiImporterProps) => {
         
         const team1: Partial<TeamDetails> = {
           name: homeName,
-          flagUrl: countryFlagMap[homeName] || '',
+          flagUrl: fixtureInfo.teams.home.logo || countryFlagMap[homeName] || '',
         };
         const team2: Partial<TeamDetails> = {
           name: awayName,
-          flagUrl: countryFlagMap[awayName] || '',
+          flagUrl: fixtureInfo.teams.away.logo || countryFlagMap[awayName] || '',
         };
         
         const score = `${fixtureInfo.goals.home ?? 0}-${fixtureInfo.goals.away ?? 0}`;
@@ -236,9 +236,9 @@ export const MatchApiImporter = ({ onImport }: MatchApiImporterProps) => {
           {loading ? (
              <div className="flex items-center gap-2 text-gray-500 font-bold uppercase"><Loader2 className="animate-spin" /> Chargement...</div>
           ) : (
-             <div className="flex gap-4 items-center">
+             <div className="flex flex-col md:flex-row gap-4 md:items-center w-full">
                  <select 
-                    className="flex-1 p-2 border-4 border-neo-black bg-neo-cream font-bold"
+                    className="flex-1 w-full p-2 border-4 border-neo-black bg-neo-cream font-bold overflow-hidden text-ellipsis"
                     value={selectedFixtureId}
                     onChange={(e) => setSelectedFixtureId(e.target.value)}
                  >
@@ -249,10 +249,12 @@ export const MatchApiImporter = ({ onImport }: MatchApiImporterProps) => {
                          </option>
                      ))}
                  </select>
-                 <Button onClick={handleImport} disabled={!selectedFixtureId || importing} className="bg-neo-blue text-white">
-                     {importing ? <Loader2 className="animate-spin" /> : "IMPORTER"}
-                 </Button>
-                 <Button variant="outline" onClick={() => setIsOpen(false)}>ANNULER</Button>
+                 <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                   <Button onClick={handleImport} disabled={!selectedFixtureId || importing} className="w-full sm:w-auto bg-neo-blue text-white whitespace-nowrap">
+                       {importing ? <Loader2 className="animate-spin" /> : "IMPORTER"}
+                   </Button>
+                   <Button variant="outline" onClick={() => setIsOpen(false)} className="w-full sm:w-auto whitespace-nowrap">ANNULER</Button>
+                 </div>
              </div>
           )}
         </div>

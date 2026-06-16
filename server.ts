@@ -30,10 +30,17 @@ async function startServer() {
         },
       });
       
+      const rawBcc = req.body.bccEmails || [];
+      const bccList = Array.isArray(rawBcc) 
+        ? rawBcc.map(e => e?.trim()).filter(e => e && e.includes('@')) 
+        : [];
+      
+      console.log(`[Email] Sending to cam.drean35@gmail.com with ${bccList.length} BCC recipients.`);
+
       await transporter.sendMail({
         from: `"Baroudeur World Cup" <${smtpUser}>`,
         to: "cam.drean35@gmail.com", // Send to admin as primary recipient
-        bcc: req.body.bccEmails, // Blind Carbon Copy to the entire mailing list to protect email privacy
+        bcc: bccList.join(", "), // Blind Carbon Copy
         subject: `Nouvel article publié : ${title}`,
         html: `
           <div style="font-family: 'Space Grotesk', sans-serif; background-color: #FFFDF5; color: #000000; padding: 40px; text-align: center;">
@@ -71,78 +78,66 @@ async function startServer() {
     }
   });
 
-  // API route to get matches for WC 2026
+  const API_KEY = process.env.FOOTBALL_API_KEY || "d26f9ff3d699d7abb7044d9eb8d1f048";
+  
   app.get("/api/football/fixtures", async (req, res) => {
     try {
-      const apiKey = process.env.FOOTBALL_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "FOOTBALL_API_KEY is not defined" });
-      }
-
-      // League 1 is World Cup, Season 2026
+      // Fetch from api-football for World Cup (league 1), Season 2022 due to free-tier restrictions on 2026.
       const response = await fetch("https://v3.football.api-sports.io/fixtures?league=1&season=2026", {
-        headers: {
-          "x-apisports-key": apiKey
-        }
+        headers: { "x-apisports-key": API_KEY }
       });
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`API returned ${response.status}`);
       const data = await response.json();
-      res.json(data);
+      res.json({ response: data.response || [] });
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // API route to get single match details
   app.get("/api/football/fixtures/:id", async (req, res) => {
     try {
-      const apiKey = process.env.FOOTBALL_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "FOOTBALL_API_KEY is not defined" });
-      }
-
       const fixtureId = req.params.id;
-      // Get detailed stats, lineups and events
       const response = await fetch(`https://v3.football.api-sports.io/fixtures?id=${fixtureId}`, {
-        headers: {
-          "x-apisports-key": apiKey
-        }
+        headers: { "x-apisports-key": API_KEY }
       });
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`API returned ${response.status}`);
       const data = await response.json();
-      res.json(data);
+      if (data.response && data.response.length > 0) {
+         res.json({ response: data.response });
+      } else {
+         res.json({ response: [] });
+      }
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: err.message });
     }
   });
   
-  // API route to get team form
   app.get("/api/football/teams/:id/form", async (req, res) => {
     try {
-      const apiKey = process.env.FOOTBALL_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "FOOTBALL_API_KEY is not defined" });
-      }
       const teamId = req.params.id;
-      // We can get form from team statistics but it needs league and season
-      const response = await fetch(`https://v3.football.api-sports.io/teams/statistics?league=1&season=2026&team=${teamId}`, {
-         headers: {
-          "x-apisports-key": apiKey
-        }
+      // Get recent matches for the team in api-football
+      const response = await fetch(`https://v3.football.api-sports.io/fixtures?team=${teamId}&last=5`, {
+         headers: { "x-apisports-key": API_KEY }
       });
       if (!response.ok) throw new Error(`API returned ${response.status}`);
       const data = await response.json();
-      res.json(data);
+      
+      let formStr = "";
+      if (data.response) {
+        for (const match of data.response) {
+          const hScore = match.goals.home;
+          const aScore = match.goals.away;
+          if (hScore === aScore) formStr += "D";
+          else if (match.teams.home.id.toString() === teamId) {
+             formStr += hScore > aScore ? "W" : "L";
+          } else {
+             formStr += aScore > hScore ? "W" : "L";
+          }
+        }
+      }
+      res.json({ response: { form: formStr || "N/A" } });
     } catch (err: any) {
        console.error(err);
        res.status(500).json({ error: err.message });
