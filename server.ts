@@ -78,7 +78,7 @@ async function startServer() {
     }
   });
 
-  const API_KEY = process.env.FOOTBALL_API_KEY || "d26f9ff3d699d7abb7044d9eb8d1f048";
+  const API_KEY = process.env.FOOTBALL_API_KEY;
   
   app.get("/api/football/fixtures", async (req, res) => {
     try {

@@ -24,7 +24,7 @@ const EditorModal = ({ isOpen, onClose, title, children }: { isOpen: boolean, on
       <div className="bg-neo-cream border-4 border-neo-black p-6 w-full max-w-lg shadow-[8px_8px_0px_#000] rotate-1">
         <div className="flex justify-between items-center mb-6 border-b-4 border-neo-black pb-4">
           <h3 className="font-black text-2xl uppercase tracking-tighter">{title}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-neo-red hover:text-white border-2 border-transparent hover:border-neo-black transition-colors">
+          <button type="button" onClick={onClose} className="p-1 hover:bg-neo-red hover:text-white border-2 border-transparent hover:border-neo-black transition-colors">
             <X size={24} />
           </button>
         </div>

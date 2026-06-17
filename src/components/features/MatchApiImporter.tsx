@@ -227,7 +227,7 @@ export const MatchApiImporter = ({ onImport }: MatchApiImporterProps) => {
   return (
     <div className="mb-6 bg-white border-4 border-neo-black p-4 shadow-neo-sm">
       {!isOpen ? (
-        <Button onClick={() => setIsOpen(true)} className="flex items-center gap-2">
+        <Button type="button" onClick={() => setIsOpen(true)} className="flex items-center gap-2">
           <Download size={18} /> IMPORTER LES DONNÉES DU MATCH
         </Button>
       ) : (
@@ -250,10 +250,10 @@ export const MatchApiImporter = ({ onImport }: MatchApiImporterProps) => {
                      ))}
                  </select>
                  <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                   <Button onClick={handleImport} disabled={!selectedFixtureId || importing} className="w-full sm:w-auto bg-neo-blue text-white whitespace-nowrap">
+                   <Button type="button" onClick={handleImport} disabled={!selectedFixtureId || importing} className="w-full sm:w-auto bg-neo-blue text-white whitespace-nowrap">
                        {importing ? <Loader2 className="animate-spin" /> : "IMPORTER"}
                    </Button>
-                   <Button variant="outline" onClick={() => setIsOpen(false)} className="w-full sm:w-auto whitespace-nowrap">ANNULER</Button>
+                   <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="w-full sm:w-auto whitespace-nowrap">ANNULER</Button>
                  </div>
              </div>
           )}
